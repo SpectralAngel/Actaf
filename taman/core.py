@@ -73,8 +73,8 @@ class Updater(object):
 				extra.act()
 		else:
 			for extra in affiliate.extras:
-				if converted.amount >= extra.amount:
-					converted.amount -= extra.amount
+				if amount >= extra.amount:
+					amount -= extra.amount
 					self.acdict[extra.account]['amount'] += extra.amount
 					self.acdict[extra.account]['number'] += 1
 					extra.act()
@@ -84,6 +84,13 @@ class Updater(object):
 		self.accounts[self.registered['exceding']]['amount'] += amount
 		self.accounts[self.registered['exceding']]['number'] += 1
 		database.create_deduction(affiliate, amount, self.accounts[self.registered['exceding']])
+	
+	def delayed(affiliate, amount):
+		
+		for delayed in affiliate.delayed:
+			self.accounts[self.registered['delayed']]['amount'] += amount
+			self.accounts[self.registered['delayed']]['number'] += 1
+			delayed.act()
 
 	def loan(self, loan, amount):
 
@@ -119,3 +126,72 @@ class Corrector(object):
 			
 				loan.affiliate.loans[1].pays[0].revert()
 				loan.affiliate.loans[0].remove()
+
+class ReporteLine(object):
+	
+	def __init__(self, affiliate, amount):
+		
+		self.amount = amount
+		self.affiliate = affiliate
+	
+	def __str__(self):
+	
+		total = self.amount * Decimal(100)
+		zeros = '%(#)018d' % {"#":total}
+		if self.affiliate.cardID == None:
+			return ""
+		return self.affiliate.cardID.replace('-', '') + '0011' + zeros
+
+class Reporter(object):
+	
+	def __init__(self, year, month):
+		
+		self.year = year
+		self.month = month
+		self.lines = []
+	
+	def create_delayed(self):
+		
+		affiliates = database.get_affiliates_by_payment("Escalafon")
+		for affiliate in affiliates:
+			
+			delayed = affiliate.get_delayed()
+			
+			if delayed != None:
+				
+				database.create_delayed(affiliate, delayed)
+	
+	def process_affiliates(self):
+		
+		affiliates = database.get_affiliates_by_payment("Escalafon")
+		obligation = database.get_obligation(self.year, self.month)
+		
+		for affiliate in affiliates:
+			
+			if not affiliate.active:
+				continue
+			
+			amount = 0
+			
+			for e in affiliate.extras:
+				amount += e.amount
+			
+			for loan in affiliate.loans:
+				amount += loan.get_payment()
+			
+			amount += obligation
+			line = ReportLine(affiliate, amount)
+			self.lines.append(line)
+	
+	def write_file(self):
+		
+		filename = "./%(year)s%(month)02dCOPEMH.txt" % {'year':self.year, 'month':self.month}
+		f = open(filename, 'w')
+		start = "%(year)s%(month)02d" % {'year':int(year), 'month':int(month)}
+		
+		for line in self.lines:
+			if str(line) == "":
+				continue
+			l = start + str(line) + "\n"
+			f.write(l)
+

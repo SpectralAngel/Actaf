@@ -79,3 +79,9 @@ def create_report(accounts, year, month):
 		for key in accounts.keys() if self.accounts[key]['amount'] != 0)
 	
 	return report
+def create_delayed(affiliate, delayed):
+	
+	kw = {}
+	kw['affiliate'] = affiliate
+	kw['month'] = delayed.delayed()
+
