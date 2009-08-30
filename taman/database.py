@@ -20,7 +20,7 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, 
 # Boston, MA  02110-1301  USA
 
-# from model import *
+from model import *
 
 #scheme= 'mysql://root:gustavito@localhost/afiliados'
 #connection = connectionForURI(scheme)

@@ -1,5 +1,25 @@
 #!/usr/bin/env python
 # -*- coding: utf8 -*-
+# core.py
+# This file is part of TaMan
+#
+# Copyright (C) 2009 - Carlos Flores
+#
+# TaMan is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# TaMan is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with TaMan; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, 
+# Boston, MA  02110-1301  USA
+
 from decimal import Decimal
 
 class Income(object):
@@ -37,7 +57,7 @@ class Updater(object):
 		self.obligation = obligation
 		self.accounts = accounts
 		self.day = day
-		self.registered = {}
+		self.registered = dict()
 
 	def register_account(self, account, name):
 
@@ -96,7 +116,7 @@ class Updater(object):
 
 		if amount == 0:
 			return
-
+		
 		payment = loan.get_payment()
 		if amount >= payment:
 
@@ -149,6 +169,7 @@ class Reporter(object):
 		self.year = year
 		self.month = month
 		self.lines = []
+		self.filename = "./%(year)s%(month)02dCOPEMH.txt" % {'year':self.year, 'month':self.month}
 	
 	def create_delayed(self):
 		
@@ -157,9 +178,7 @@ class Reporter(object):
 			
 			delayed = affiliate.get_delayed()
 			
-			if delayed != None:
-				
-				database.create_delayed(affiliate, delayed)
+			if delayed != None: database.create_delayed(affiliate, delayed)
 	
 	def process_affiliates(self):
 		
@@ -168,16 +187,13 @@ class Reporter(object):
 		
 		for affiliate in affiliates:
 			
-			if not affiliate.active:
-				continue
+			if not affiliate.active: continue
 			
 			amount = 0
 			
-			for e in affiliate.extras:
-				amount += e.amount
+			for e in affiliate.extras: amount += e.amount
 			
-			for loan in affiliate.loans:
-				amount += loan.get_payment()
+			for loan in affiliate.loans: amount += loan.get_payment()
 			
 			amount += obligation
 			line = ReportLine(affiliate, amount)
@@ -185,13 +201,13 @@ class Reporter(object):
 	
 	def write_file(self):
 		
-		filename = "./%(year)s%(month)02dCOPEMH.txt" % {'year':self.year, 'month':self.month}
-		f = open(filename, 'w')
+		f = open(self.filename, 'w')
 		start = "%(year)s%(month)02d" % {'year':int(year), 'month':int(month)}
 		
 		for line in self.lines:
-			if str(line) == "":
+			str_line = str(line)
+			if str_line == "":
 				continue
-			l = start + str(line) + "\n"
+			l = start + str_line + "\n"
 			f.write(l)
 

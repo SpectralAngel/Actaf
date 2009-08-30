@@ -54,17 +54,18 @@ class TaMan(object):
 				"on_report_clicked":self.on_report_clicked,
 				"on_about_activate":self.on_about_activate,
 				"on_window_destroy":gtk.main_quit,
-				"on_acerca_close":self.on_acerca_close
+				"on_acerca_close":self.on_acerca_close,
+				"on_generate_clicked":self.on_generate_clicked
 			}
 		)
 	
 	#################################
 	# Callbacks
-	def on_acerca_close(self, obj, response=None):
+	def on_acerca_close(self, window, response=None):
 	
 		"""Hides the about window"""
 		
-		obj.hide()
+		window.hide()
 	
 	def on_about_activate(self, obj):
 		
@@ -75,7 +76,7 @@ class TaMan(object):
 		acerca.set_version("0.1")
 		acerca.show()
 	
-	def on_update_clicked(self, obj):
+	def on_update_clicked(self, button):
 		
 		posteo = self.builder.get_object("posteo")
 		archivo = self.builder.get_object("deductions")
@@ -91,7 +92,7 @@ class TaMan(object):
 		return
 		if respuesta == gtk.RESPONSE_OK:
 			
-			afiliados = {}
+			afiliados = dict()
 			for a in database.get_affiliates_by_payment("Escalafon"):
 				
 				afiliados[a.cardID] = a
@@ -100,20 +101,20 @@ class TaMan(object):
 			
 			dia = fecha.get_date()
 			
-			accounts = {}
+			accounts = dict()
 			for account in database.get_accounts():
 				
-				accounts[account] = {}
+				accounts[account] = dict()
 				accounts[account]['number'] = 0
 				accounts[account]['amount'] = Decimal(0)
 			
 			updater = core.Updater(database.get_obligation(dia.year, dia.month),
 									accounts, dia)
 			
-			updater.register_account(get_loan_account(), 'loan')
-			updater.register_account(get_cuota_account(), 'cuota')
-			updater.register_account(get_incomplete_account(), 'incomplete')
-			updater.register_account(get_exceding_account(), 'exceding')
+			updater.register_account(database.get_loan_account(), 'loan')
+			updater.register_account(database.get_cuota_account(), 'cuota')
+			updater.register_account(database.get_incomplete_account(), 'incomplete')
+			updater.register_account(database.get_exceding_account(), 'exceding')
 			
 			# Cambiar por un par de acciones que muestren progreso
 			(updater.update(income) for income in parser.parse())
@@ -121,7 +122,7 @@ class TaMan(object):
 			reporte = database.create_report(accounts, dia.year, dia.month)
 			self.create_report_window(report)
 	
-	def on_correct_clicked(self, obj):
+	def on_correct_clicked(self, button):
 		
 		inicio = self.builder.get_object("inicio")
 		fin = self.builder.get_object("fin")
@@ -146,7 +147,7 @@ class TaMan(object):
 										fin.get_date()))
 			corrector.correct()
 	
-	def on_report_clicked(self, obj):
+	def on_report_clicked(self, button):
 		
 		periodo = self.builder.get_object("dialogoReporte")
 		anio = self.builder.get_object("anio")
@@ -154,12 +155,23 @@ class TaMan(object):
 		
 		respuesta = periodo.run()
 		periodo.hide()
-		return
-		if respuesta == gtk.response_OK:
+		if respuesta == gtk.RESPONSE_OK:
 			
 			report = database.get_income_report(int(anio.get_value()),
 												int(mes.get_value()))
 			self.create_report_window(report)
+	
+	def on_generate_clicked(self, button):
+		
+		anio = self.builder.get_object("gen_anio")
+		mes = self.builder.get_object("gen_mes")
+		generador = self.builder.get_object("generator")
+		respuesta = generador.run()
+		generador.hide()
+		if respuesta == gtk.RESPONSE_OK:
+			
+			reporter = core.Reporter(int(anio.get_value()), int(mes.get_value()))
+			reporter.process_affiliates()
 	
 	###################
 	# Utility Functions
