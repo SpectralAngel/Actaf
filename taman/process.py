@@ -23,11 +23,6 @@
 import database
 import core
 from decimal import Decimal
-from model import *
-
-scheme = 'mysql://root:gustavito@localhost/afiliados2?debug=1'
-connection = connectionForURI(scheme)
-sqlhub.processConnection = connection
 
 def start(parser, dia, no_escalafon=False):
 	
@@ -38,7 +33,7 @@ def start(parser, dia, no_escalafon=False):
 		accounts[account]['number'] = 0
 		accounts[account]['amount'] = Decimal(0)
 	
-	updater = core.Updater(database.get_obligation(dia.year, dia.month),
+	updater = core.Updater(database.get_obligation(dia.year, dia.month, no_escalafon),
 							accounts, dia)
 	
 	updater.register_account(database.get_loan_account(), 'loan')

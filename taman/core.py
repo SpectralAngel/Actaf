@@ -92,72 +92,72 @@ class Updater(object):
 
 	def update(self, income):
 
-		self.cuota(income.affiliate, income.amount)
-		self.extra(income.affiliate, income.amount)
-		for loan in income.affiliate.loans:
-			self.loan(loan, income.amount)
+		self.cuota(income)
+		for loan in income.affiliate.loans: self.loan(loan, income)
+		self.extra(income)
 		if income.amount > 0:
 			
-			self.exceding(income.affiliate, income.amount)
+			self.exceding(income)
 
-	def cuota(self, affiliate, amount):
+	def cuota(self, income):
 
-		if amount >= self.obligation:
+		if income.amount >= self.obligation:
 
 			self.accounts[self.registered['cuota']]['amount'] += self.obligation
 			self.accounts[self.registered['cuota']]['number'] += 1
-			affiliate.pay_cuota(self.day.year, self.day.month)
-			amount -= self.obligation
-			database.create_deduction(affiliate, self.obligation, self.accounts[self.registered['cuota']])
+			income.affiliate.pay_cuota(self.day.year, self.day.month)
+			income.amount -= self.obligation
+			database.create_deduction(income.affiliate, self.obligation, self.accounts[self.registered['cuota']])
 
-	def extra(self, affiliate, amount):
+	def extra(self, income):
 
-		extras = sum(e.amount for e in affiliate.extras)
-		if amount >= extras:
-			amount -= extras
-			for extra in affiliate.extras:
+		extras = sum(e.amount for e in income.affiliate.extras)
+		if income.amount >= extras:
+			income.amount -= extras
+			for extra in income.affiliate.extras:
 				self.accounts[extra.account]['amount'] += extra.amount
 				self.accounts[extra.account]['number'] += 1
 				extra.act()
 		else:
-			for extra in affiliate.extras:
-				if amount >= extra.amount:
+			for extra in income.affiliate.extras:
+				if income.amount >= extra.amount:
 					amount -= extra.amount
 					self.accounts[extra.account]['amount'] += extra.amount
 					self.accounts[extra.account]['number'] += 1
 					extra.act()
 
-	def exceding(self, affiliate, amount):
+	def exceding(self, income):
 
-		self.accounts[self.registered['exceding']]['amount'] += amount
+		self.accounts[self.registered['exceding']]['amount'] += income.amount
 		self.accounts[self.registered['exceding']]['number'] += 1
-		database.create_deduction(affiliate, amount, self.accounts[self.registered['exceding']])
+		database.create_deduction(income.affiliate, income.amount, self.accounts[self.registered['exceding']])
 	
-	def delayed(affiliate, amount):
+	def delayed(income):
 		
-		for delayed in affiliate.delayed:
-			self.accounts[self.registered['delayed']]['amount'] += amount
+		for delayed in income.affiliate.delayed:
+			self.accounts[self.registered['delayed']]['amount'] += income.amount
 			self.accounts[self.registered['delayed']]['number'] += 1
 			delayed.act()
 
-	def loan(self, loan, amount):
+	def loan(self, loan, income):
 
-		if amount == 0:
+		if income.amount == 0:
 			return
 		
 		payment = loan.get_payment()
-		if amount >= payment:
+		if income.amount >= payment:
 
 			loan.pay(payment, "Planilla", self.day)
 			self.accounts[self.registered['loan']]['amount'] += payment
 			self.accounts[self.registered['loan']]['number'] += 1
-			amount -= payment
+			income.amount -= payment
 			database.create_deduction(loan.affiliate, payment, self.accounts[self.registered['loan']])
 
 		else:
-			loan.pay(amount, "Planilla", self.day)
-			self.accounts[self.registered['incomplete']]['amount'] += amount
+			loan.pay(income.amount, "Planilla", self.day)
+			self.accounts[self.registered['incomplete']]['amount'] += income.amount
 			self.accounts[self.registered['incomplete']]['number'] += 1
+			income.amount = 0
 			database.create_deduction(loan.affiliate, payment, self.accounts[self.registered['incomplete']])
 
 class Corrector(object):

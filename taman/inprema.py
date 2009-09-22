@@ -5,7 +5,6 @@ import database
 from datetime import date
 import process
 import core
-from model import *
 
 if __name__ == '__main__':
 	
@@ -14,10 +13,6 @@ if __name__ == '__main__':
 		psyco.full()
 	except ImportError:
 		pass
-	
-	scheme = 'mysql://root:gustavito@localhost/afiliados2?debug=1'
-	connection = connectionForURI(scheme)
-	sqlhub.processConnection = connection
 	
 	affiliates = database.get_affiliates_by_payment("INPREMA")
 	afiliados = dict()

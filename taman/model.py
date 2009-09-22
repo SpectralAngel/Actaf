@@ -24,7 +24,7 @@ from datetime import datetime, date
 from decimal import *
 from sqlobject import *
 
-scheme = 'mysql://root:gustavito@localhost/afiliados2?debug=1'
+scheme = 'mysql://root:gustavito@localhost/afiliados2'
 connection = connectionForURI(scheme)
 sqlhub.processConnection = connection
 
