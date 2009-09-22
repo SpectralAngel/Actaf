@@ -15,6 +15,10 @@ if __name__ == '__main__':
 	except ImportError:
 		pass
 	
+	scheme = 'mysql://root:gustavito@localhost/afiliados2?debug=1'
+	connection = connectionForURI(scheme)
+	sqlhub.processConnection = connection
+	
 	affiliates = database.get_affiliates_by_payment("INPREMA")
 	afiliados = dict()
 	
@@ -27,9 +31,7 @@ if __name__ == '__main__':
 			print e.message
 		
 		afiliados[inprema] = a
-	
-	print afiliados
-	
+		
 	hoy = date.today()
 	
 	parser = core.ParserINPREMA(open('inprema.csv'), afiliados)

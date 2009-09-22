@@ -23,6 +23,11 @@
 import database
 import core
 from decimal import Decimal
+from model import *
+
+scheme = 'mysql://root:gustavito@localhost/afiliados2?debug=1'
+connection = connectionForURI(scheme)
+sqlhub.processConnection = connection
 
 def start(parser, dia, no_escalafon=False):
 	
@@ -42,7 +47,8 @@ def start(parser, dia, no_escalafon=False):
 	updater.register_account(database.get_exceding_account(), 'exceding')
 	
 	# Cambiar por un par de acciones que muestren progreso
-	(updater.update(income) for income in parser.parse())
+	for income in parser.parse():
+		updater.update(income)
 	
 	reporte = None
 	if no_escalafon == True: database.create_other_report(accounts, dia.year, dia.month, 'INPREMA')

@@ -144,6 +144,7 @@ class Affiliate(SQLObject):
 				return
 	
 	def pay_cuota(self, year, month):
+				
 		tables = [t for t in self.cuotaTables if t.year == year]
 		table = None
 		if len(tables) == 0:
@@ -390,6 +391,7 @@ class CuotaTable(SQLObject):
 			amount -= total
 	
 	def pay_month(self, month):
+		
 		setattr(self, "month%s" % month, True)
 	
 	def remove_month(self, month):

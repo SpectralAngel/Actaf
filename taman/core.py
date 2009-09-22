@@ -22,6 +22,7 @@
 
 from decimal import Decimal
 import csv
+import database
 
 class Income(object):
 
@@ -72,7 +73,7 @@ class ParserINPREMA(object):
 			except:
 				perdidos += 1
 				print("Error de parseo no se encontro la identidad %s" % cobro)
-				print type(cobro)
+				
 		print perdidos
 		return self.parsed
 
@@ -93,7 +94,8 @@ class Updater(object):
 
 		self.cuota(income.affiliate, income.amount)
 		self.extra(income.affiliate, income.amount)
-		(self.loan(loan, income.amount) for loan in affiliate.loans)
+		for loan in income.affiliate.loans:
+			self.loan(loan, income.amount)
 		if income.amount > 0:
 			
 			self.exceding(income.affiliate, income.amount)
@@ -104,9 +106,9 @@ class Updater(object):
 
 			self.accounts[self.registered['cuota']]['amount'] += self.obligation
 			self.accounts[self.registered['cuota']]['number'] += 1
-			affiliate.pay_cuota(day.year, day.month)
-			amount -= obligation
-			database.create_deduction(affiliate, obligation, self.accounts[self.registered['cuota']])
+			affiliate.pay_cuota(self.day.year, self.day.month)
+			amount -= self.obligation
+			database.create_deduction(affiliate, self.obligation, self.accounts[self.registered['cuota']])
 
 	def extra(self, affiliate, amount):
 
@@ -114,15 +116,15 @@ class Updater(object):
 		if amount >= extras:
 			amount -= extras
 			for extra in affiliate.extras:
-				self.acdict[extra.account]['amount'] += extra.amount
-				self.acdict[extra.account]['number'] += 1
+				self.accounts[extra.account]['amount'] += extra.amount
+				self.accounts[extra.account]['number'] += 1
 				extra.act()
 		else:
 			for extra in affiliate.extras:
 				if amount >= extra.amount:
 					amount -= extra.amount
-					self.acdict[extra.account]['amount'] += extra.amount
-					self.acdict[extra.account]['number'] += 1
+					self.accounts[extra.account]['amount'] += extra.amount
+					self.accounts[extra.account]['number'] += 1
 					extra.act()
 
 	def exceding(self, affiliate, amount):
@@ -150,13 +152,13 @@ class Updater(object):
 			self.accounts[self.registered['loan']]['amount'] += payment
 			self.accounts[self.registered['loan']]['number'] += 1
 			amount -= payment
-			database.create_deduction(affiliate, payment, self.accounts[self.registered['loan']])
+			database.create_deduction(loan.affiliate, payment, self.accounts[self.registered['loan']])
 
 		else:
 			loan.pay(amount, "Planilla", self.day)
 			self.accounts[self.registered['incomplete']]['amount'] += amount
 			self.accounts[self.registered['incomplete']]['number'] += 1
-			database.create_deduction(affiliate, payment, self.accounts[self.registered['incomplete']])
+			database.create_deduction(loan.affiliate, payment, self.accounts[self.registered['incomplete']])
 
 class Corrector(object):
 	
