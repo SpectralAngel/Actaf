@@ -99,27 +99,8 @@ class TaMan(object):
 			
 			parser = core.Parser(archivo.get_filename(), afiliados)
 			
-			dia = fecha.get_date()
+			report = process.start(parser, afiliados, fecha.get_date())
 			
-			accounts = dict()
-			for account in database.get_accounts():
-				
-				accounts[account] = dict()
-				accounts[account]['number'] = 0
-				accounts[account]['amount'] = Decimal(0)
-			
-			updater = core.Updater(database.get_obligation(dia.year, dia.month),
-									accounts, dia)
-			
-			updater.register_account(database.get_loan_account(), 'loan')
-			updater.register_account(database.get_cuota_account(), 'cuota')
-			updater.register_account(database.get_incomplete_account(), 'incomplete')
-			updater.register_account(database.get_exceding_account(), 'exceding')
-			
-			# Cambiar por un par de acciones que muestren progreso
-			(updater.update(income) for income in parser.parse())
-			
-			reporte = database.create_report(accounts, dia.year, dia.month)
 			self.create_report_window(report)
 	
 	def on_correct_clicked(self, button):

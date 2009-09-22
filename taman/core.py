@@ -21,6 +21,7 @@
 # Boston, MA  02110-1301  USA
 
 from decimal import Decimal
+import csv
 
 class Income(object):
 
@@ -34,7 +35,7 @@ class Parser(object):
 
 		self.file = open(filename)
 		self.affiliates = affiliates
-		self.parsed = []
+		self.parsed = list()
 
 	def parse(self):
 
@@ -43,11 +44,36 @@ class Parser(object):
 			amount = Decimal(str(line[94:111])) / hundred
 			card = str(line[6:10] + '-' + line[10:14] + '-' + line[14:19])
 			try:
-				self.parsed.append(Income(affiliates[card], amount))
+				self.parsed.append(Income(self.affiliates[card], amount))
 
 			except:
 				print("Error de parseo no se encontro la identidad %s" % card)
 
+		return self.parsed
+
+class ParserINPREMA(object):
+
+	def __init__(self, filename, affiliates):
+
+		self.reader = csv.reader(filename)
+		self.affiliates = affiliates
+		self.parsed = list()
+
+	def parse(self):
+		
+		perdidos = 0
+		for row in self.reader:
+
+			amount = Decimal(row[2])
+			cobro = int(row[0])
+			try:
+				self.parsed.append(Income(self.affiliates[cobro], amount))
+
+			except:
+				perdidos += 1
+				print("Error de parseo no se encontro la identidad %s" % cobro)
+				print type(cobro)
+		print perdidos
 		return self.parsed
 
 class Updater(object):

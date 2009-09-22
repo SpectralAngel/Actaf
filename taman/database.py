@@ -22,13 +22,9 @@
 
 from model import *
 
-#scheme= 'mysql://root:gustavito@localhost/afiliados'
-#connection = connectionForURI(scheme)
-#sqlhub.processConnection = connection
-
 def get_affiliates_by_payment(payment):
 	
-	return Affilate.select(Affiliate.q.payment==payment)
+	return Affiliate.select(Affiliate.q.payment==payment)
 
 def get_loans_by_period(start, end):
 	
@@ -36,10 +32,11 @@ def get_loans_by_period(start, end):
 
 	return Loans.q.select(query)
 
-def get_obligation(year, month):
+def get_obligation(year, month, inprema=False):
 	
 	query = "obligation.year = %s and obligation.month = %s" % (year, month)
 	obligations = Obligation.select(query)
+	if inprema: return sum(o.inprema for o in obligations)
 	return sum(o.amount for o in obligations)
 
 def get_accounts():
@@ -73,12 +70,22 @@ def create_deduction(affiliate, amount, account):
 
 def create_report(accounts, year, month):
 	
-	report = PostReport(year=self.year, month=self.month)
+	report = PostReport(year=year, month=month)
 	(ReportAccount(name=key.name, amount=accounts[key]['amount'],
 					quantity=accounts[key]['number'], postReport=report)
 		for key in accounts.keys() if self.accounts[key]['amount'] != 0)
 	
 	return report
+
+def create_other_report(accounts, year, month, other):
+	
+	report = OtherReport(year=year, month=month, payment=other)
+	(OtherAccount(name=key.name, amount=accounts[key]['amount'],
+					quantity=accounts[key]['number'], otherReport=report)
+		for key in accounts if self.accounts[key]['amount'] != 0)
+	
+	return report
+
 def create_delayed(affiliate, delayed):
 	
 	kw = {}
