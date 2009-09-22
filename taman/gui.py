@@ -24,11 +24,13 @@
 import pygtk
 pygtk.require("2.0")
 import gtk
+
+from decimal import Decimal
+from datetime import date
+import locale
+
 import core
 import database
-from decimal import Decimal
-import locale
-import datetime
 
 class TaMan(object):
 	
@@ -37,7 +39,7 @@ class TaMan(object):
 	def __init__(self):
 		
 		self.builder = gtk.Builder()
-		self.builder.add_from_file("taman.xml")
+		self.builder.add_from_file("taman.glade")
 		
 		self.window = self.builder.get_object("main")
 		
@@ -55,7 +57,9 @@ class TaMan(object):
 				"on_about_activate":self.on_about_activate,
 				"on_window_destroy":gtk.main_quit,
 				"on_acerca_close":self.on_acerca_close,
-				"on_generate_clicked":self.on_generate_clicked
+				"on_generate_clicked":self.on_generate_clicked,
+				"on_posteo_inprema_clicked":self.on_posteo_inprema_clicked,
+				"on_generar_inprema_clicked":self.on_generar_inprema_clicked
 			}
 		)
 	
@@ -80,16 +84,16 @@ class TaMan(object):
 		
 		posteo = self.builder.get_object("posteo")
 		archivo = self.builder.get_object("deductions")
-		fecha = self.builder.get_object("post_day")
+		fecha = self.builder.get_object("diaposteo")
 		
 		# Cambiando la fecha a mostrar en la ventana de posteo
-		hoy = datetime.date.today()
+		hoy = date.today()
 		fecha.select_month(hoy.month-1, hoy.year)
 		fecha.select_day(hoy.day)
 		
 		respuesta = posteo.run()
 		posteo.hide()
-		return
+		
 		if respuesta == gtk.RESPONSE_OK:
 			
 			afiliados = dict()
@@ -109,7 +113,7 @@ class TaMan(object):
 		fin = self.builder.get_object("fin")
 		
 		# Cambiar las fechas a mostrar en el selector de periodo
-		hoy = datetime.date.today()
+		hoy = date.today()
 		
 		inicio.select_month(hoy.month-1, hoy.year)
 		inicio.select_day(1)
@@ -121,7 +125,7 @@ class TaMan(object):
 		
 		respuesta = ventana.run()
 		ventana.hide()
-		return
+		
 		if respuesta == gtk.RESPONSE_OK:
 		
 			corrector = core.Corrector(get_loans_by_period(inicio.get_date(),
@@ -154,6 +158,43 @@ class TaMan(object):
 			reporter = core.Reporter(int(anio.get_value()), int(mes.get_value()))
 			reporter.process_affiliates()
 	
+	def on_posteo_inprema_clicked(self, button):
+		
+		posteo = self.builder.get_object("posteo")
+		archivo = self.builder.get_object("deductions")
+		fecha = self.builder.get_object("diaposteo")
+		
+		# Cambiando la fecha a mostrar en la ventana de posteo
+		hoy = date.today()
+		fecha.select_month(hoy.month-1, hoy.year)
+		fecha.select_day(hoy.day)
+		
+		respuesta = posteo.run()
+		posteo.hide()
+		
+		if respuesta != gtk.RESPONSE_OK: return
+		
+		affiliates = database.get_affiliates_by_payment("INPREMA")
+		afiliados = dict()
+	
+		for a in affiliates:
+		
+			inprema = None
+			try: inprema = int(a.escalafon)
+			except Exception, e: print e.message
+		
+			afiliados[inprema] = a
+	
+		parser = core.ParserINPREMA(archivo.get_filename(), afiliados)
+	
+		reporte = process.start(parser, fecha.get_date(), True, 'INPREMA')
+		
+		self.create_report_window(reporte)
+	
+	def on_generar_inprema(self, button):
+		
+		pass
+	
 	###################
 	# Utility Functions
 	def create_report_window(self, report):
@@ -176,8 +217,8 @@ class TaMan(object):
 		cuentas = gtk.ListStore(str, int, str)
 		vistaCuentas.set_view(cuentas)
 		
-		(cuentas.append([ra.name, ra.quantity, locale.currency(ra.amount, True,
-																True)])
-			for ra in report.reportAccounts)
+		for ra in report.reportAccounts:
+			cuentas.append([ra.name, ra.quantity, locale.currency(ra.amount, True, True)])
 		
 		reporte.show_all()
+

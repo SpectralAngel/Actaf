@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf8 -*-
+#
 # core.py
 # This file is part of TaMan
 #
@@ -56,7 +57,7 @@ class ParserINPREMA(object):
 
 	def __init__(self, filename, affiliates):
 
-		self.reader = csv.reader(filename)
+		self.reader = csv.reader(open(filename))
 		self.affiliates = affiliates
 		self.parsed = list()
 

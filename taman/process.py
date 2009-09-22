@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf8 -*-
-# core.py
+#
+# process.py
 # This file is part of TaMan
 #
 # Copyright (C) 2009 - Carlos Flores
@@ -20,11 +21,12 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, 
 # Boston, MA  02110-1301  USA
 
-import database
-import core
 from decimal import Decimal
 
-def start(parser, dia, no_escalafon=False):
+import database
+import core
+
+def start(parser, dia, escalafon=False, cotizacion='INPREMA'):
 	
 	accounts = dict()
 	for account in database.get_accounts():
@@ -33,7 +35,7 @@ def start(parser, dia, no_escalafon=False):
 		accounts[account]['number'] = 0
 		accounts[account]['amount'] = Decimal(0)
 	
-	updater = core.Updater(database.get_obligation(dia.year, dia.month, no_escalafon),
+	updater = core.Updater(database.get_obligation(dia.year, dia.month, escalafon),
 							accounts, dia)
 	
 	updater.register_account(database.get_loan_account(), 'loan')
@@ -42,11 +44,10 @@ def start(parser, dia, no_escalafon=False):
 	updater.register_account(database.get_exceding_account(), 'exceding')
 	
 	# Cambiar por un par de acciones que muestren progreso
-	for income in parser.parse():
-		updater.update(income)
+	for income in parser.parse(): updater.update(income)
 	
 	reporte = None
-	if no_escalafon == True: database.create_other_report(accounts, dia.year, dia.month, 'INPREMA')
+	if escalafon == True: database.create_other_report(accounts, dia.year, dia.month, cotizacion)
 	else: reporte = database.create_report(accounts, dia.year, dia.month)
 	
 	return reporte
