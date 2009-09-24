@@ -429,7 +429,7 @@
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkLabel" id="label1">
+                          <object class="GtkLabel" id="label100">
                             <property name="visible">True</property>
                             <property name="label" translatable="yes">Posteo INPREMA</property>
                           </object>
@@ -464,7 +464,7 @@
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkLabel" id="label2">
+                          <object class="GtkLabel" id="label200">
                             <property name="visible">True</property>
                             <property name="label" translatable="yes">Generar Volante INPREMA</property>
                           </object>

@@ -24,7 +24,7 @@ from datetime import datetime, date
 from decimal import *
 from sqlobject import *
 
-scheme = 'mysql://root:gustavito@localhost/afiliados2'
+scheme = 'mysql://root:gustavito@localhost/afiliados'
 connection = connectionForURI(scheme)
 sqlhub.processConnection = connection
 
@@ -144,7 +144,8 @@ class Affiliate(SQLObject):
 				return
 	
 	def pay_cuota(self, year, month):
-				
+		
+		print "pagando cuota %s" % self.id
 		tables = [t for t in self.cuotaTables if t.year == year]
 		table = None
 		if len(tables) == 0:
@@ -539,7 +540,9 @@ class Loan(SQLObject):
 		Calculates the composite interest and acredits the made payment
 		"""
 		
-		kw = {}
+		print "Pagando prestamo %s" % self.id
+		
+		kw = dict()
 		kw['amount'] = Decimal(amount).quantize(dot01)
 		kw['day'] = day
 		kw['receipt'] = receipt

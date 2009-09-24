@@ -52,3 +52,20 @@ def start(parser, dia, escalafon=False, cotizacion='INPREMA'):
 	
 	return reporte
 
+def inprema(archivo, fecha):
+	
+	affiliates = database.get_affiliates_by_payment("INPREMA")
+	afiliados = dict()
+
+	for a in affiliates:
+	
+		inprema = None
+		try: inprema = int(a.escalafon)
+		except Exception, e: print e.message
+	
+		afiliados[inprema] = a
+
+	parser = core.ParserINPREMA(archivo, afiliados)
+
+	reporte = start(parser, fecha, True, 'INPREMA')
+

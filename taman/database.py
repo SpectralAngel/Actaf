@@ -22,6 +22,14 @@
 
 from model import *
 
+def get_affiliate(afiliacion):
+	
+	return Affiliate.get(afiliacion)
+
+def get_loan(prestamo):
+	
+	return Loan.get(prestamo)
+
 def get_affiliates_by_payment(payment):
 	
 	return Affiliate.select(Affiliate.q.payment==payment)

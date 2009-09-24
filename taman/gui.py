@@ -31,6 +31,7 @@ import locale
 
 import core
 import database
+import process
 
 class TaMan(object):
 	
@@ -83,7 +84,7 @@ class TaMan(object):
 	def on_update_clicked(self, button):
 		
 		posteo = self.builder.get_object("posteo")
-		archivo = self.builder.get_object("deductions")
+		archivo = self.builder.get_object("deducciones")
 		fecha = self.builder.get_object("diaposteo")
 		
 		# Cambiando la fecha a mostrar en la ventana de posteo
@@ -161,7 +162,7 @@ class TaMan(object):
 	def on_posteo_inprema_clicked(self, button):
 		
 		posteo = self.builder.get_object("posteo")
-		archivo = self.builder.get_object("deductions")
+		archivo = self.builder.get_object("deducciones")
 		fecha = self.builder.get_object("diaposteo")
 		
 		# Cambiando la fecha a mostrar en la ventana de posteo
@@ -172,26 +173,12 @@ class TaMan(object):
 		respuesta = posteo.run()
 		posteo.hide()
 		
-		if respuesta != gtk.RESPONSE_OK: return
-		
-		affiliates = database.get_affiliates_by_payment("INPREMA")
-		afiliados = dict()
+		if respuesta == gtk.RESPONSE_OK:
+			print "Procesando"
+			dia = fecha.get_date()
+			self.create_report_window(process.inprema(archivo.get_filename(),date(dia[0], dia[1], dia[2])))
 	
-		for a in affiliates:
-		
-			inprema = None
-			try: inprema = int(a.escalafon)
-			except Exception, e: print e.message
-		
-			afiliados[inprema] = a
-	
-		parser = core.ParserINPREMA(archivo.get_filename(), afiliados)
-	
-		reporte = process.start(parser, fecha.get_date(), True, 'INPREMA')
-		
-		self.create_report_window(reporte)
-	
-	def on_generar_inprema(self, button):
+	def on_generar_inprema_clicked(self, button):
 		
 		pass
 	

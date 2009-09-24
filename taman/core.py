@@ -94,7 +94,8 @@ class Updater(object):
 	def update(self, income):
 
 		self.cuota(income)
-		for loan in income.affiliate.loans: self.loan(loan, income)
+		for loan in income.affiliate.loans:
+			self.loan(loan, income)
 		self.extra(income)
 		if income.amount > 0:
 			
@@ -106,7 +107,8 @@ class Updater(object):
 
 			self.accounts[self.registered['cuota']]['amount'] += self.obligation
 			self.accounts[self.registered['cuota']]['number'] += 1
-			income.affiliate.pay_cuota(self.day.year, self.day.month)
+			afiliado = database.get_affiliate(income.affiliate.id)
+			afiliado.pay_cuota(self.day.year, self.day.month)
 			income.amount -= self.obligation
 			database.create_deduction(income.affiliate, self.obligation, self.accounts[self.registered['cuota']])
 
@@ -147,7 +149,9 @@ class Updater(object):
 		
 		payment = loan.get_payment()
 		if income.amount >= payment:
-
+			
+			loan = database.get_loan(loan.id)
+			
 			loan.pay(payment, "Planilla", self.day)
 			self.accounts[self.registered['loan']]['amount'] += payment
 			self.accounts[self.registered['loan']]['number'] += 1
