@@ -25,6 +25,7 @@ from decimal import Decimal
 
 import database
 import core
+from model import *
 
 def start(parser, dia, escalafon=False, cotizacion='INPREMA'):
 	

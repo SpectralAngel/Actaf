@@ -176,7 +176,7 @@ class TaMan(object):
 		if respuesta == gtk.RESPONSE_OK:
 			print "Procesando"
 			dia = fecha.get_date()
-			self.create_report_window(process.inprema(archivo.get_filename(),date(dia[0], dia[1], dia[2])))
+			self.create_report_window(process.inprema(archivo.get_filename(),date(dia[0], dia[1] + 1, dia[2])))
 	
 	def on_generar_inprema_clicked(self, button):
 		

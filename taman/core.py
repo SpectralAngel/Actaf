@@ -24,6 +24,7 @@
 from decimal import Decimal
 import csv
 import database
+from model import *
 
 class Income(object):
 
@@ -130,7 +131,7 @@ class Updater(object):
 					extra.act()
 
 	def exceding(self, income):
-
+		
 		self.accounts[self.registered['exceding']]['amount'] += income.amount
 		self.accounts[self.registered['exceding']]['number'] += 1
 		database.create_deduction(income.affiliate, income.amount, self.accounts[self.registered['exceding']])
