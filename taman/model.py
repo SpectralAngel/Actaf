@@ -720,6 +720,12 @@ class Pay(SQLObject):
 		kw['month'] = self.month
 		self.destroySelf()
 		OldPay(**kw)
+	
+	def revert(self):
+		
+		self.loan.debt += self.capital
+		self.loan.number -= 1
+		self.destroySelf()
 
 class Account(SQLObject):
 	

@@ -35,6 +35,8 @@ def extraer_cambios():
 		except Exception, e:
 			print "%s %s" % (income.affiliate.escalafon, type(income.affiliate.escalafon))
 	
+	del cambios[None]
+	
 	for numero in cambios: print "%s %s" % (numero, cambios[numero])
 	print len(cambios)
 
