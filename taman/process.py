@@ -29,6 +29,9 @@ from model import *
 
 def start(parser, dia, escalafon=False, cotizacion='INPREMA'):
 	
+	"""Inicia el proceso de actualización de las aportaciones utilizando la
+	planilla recibida"""
+	
 	accounts = dict()
 	for account in database.get_accounts():
 		
@@ -45,15 +48,21 @@ def start(parser, dia, escalafon=False, cotizacion='INPREMA'):
 	updater.register_account(database.get_exceding_account(), 'exceding')
 	
 	# Cambiar por un par de acciones que muestren progreso
-	for income in parser.parse(): updater.update(income)
+	for income in parser.parse():
+		updater.update(income)
 	
 	reporte = None
-	if escalafon == True: database.create_other_report(accounts, dia.year, dia.month, cotizacion)
-	else: reporte = database.create_report(accounts, dia.year, dia.month)
+	if escalafon == False:
+		reporte = database.create_other_report(accounts, dia.year, dia.month, cotizacion)
+	else:
+		reporte = database.create_report(accounts, dia.year, dia.month)
 	
 	return reporte
 
 def inprema(archivo, fecha):
+	
+	"""Incializa la actualización de las aportaciones mediante la planilla de
+	INPREMA"""
 	
 	affiliates = database.get_affiliates_by_payment("INPREMA")
 	afiliados = dict()
@@ -61,12 +70,14 @@ def inprema(archivo, fecha):
 	for a in affiliates:
 	
 		inprema = None
-		try: inprema = int(a.escalafon)
-		except Exception, e: print e.message
+		try:
+			inprema = int(a.escalafon)
+		except Exception, e:
+			print e.message
 	
 		afiliados[inprema] = a
 
 	parser = core.ParserINPREMA(archivo, afiliados)
 
-	reporte = start(parser, fecha, True, 'INPREMA')
+	reporte = start(parser, fecha)
 

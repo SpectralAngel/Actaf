@@ -24,224 +24,248 @@
 from decimal import Decimal
 import csv
 import database
-from model import *
 
 class Income(object):
+    
+    """Almacena el afiliado y la deduccion realizada para registrar los cobros
+    en el sistema"""
+    
+    def __init__(self, affiliate, amount):
 
-	def __init__(self, affiliate, amount):
-
-		(self.affiliate, self.amount) = (affiliate, amount)
+        (self.affiliate, self.amount) = (affiliate, amount)
 
 class Parser(object):
+    
+    """Extrae los datos de la planilla de Escalafon y los convierte en
+    una representación interna de los cobros"""
 
-	def __init__(self, filename, affiliates):
+    def __init__(self, filename, affiliates):
 
-		self.file = open(filename)
-		self.affiliates = affiliates
-		self.parsed = list()
+        self.file = open(filename)
+        self.affiliates = affiliates
+        self.parsed = list()
 
-	def parse(self):
+    def parse(self):
+        
+        """Se encarga de tomar linea por linea cada uno de los codigos de
+        Identidad y asignarle la cantidad deducida, entregandola en una lista
+        de ::class::`Income`"""
+        
+        for line in self.file:
 
-		for line in self.file:
+            amount = Decimal(str(line[94:111])) / hundred
+            card = str(line[6:10] + '-' + line[10:14] + '-' + line[14:19])
+            try:
+                self.parsed.append(Income(self.affiliates[card], amount))
 
-			amount = Decimal(str(line[94:111])) / hundred
-			card = str(line[6:10] + '-' + line[10:14] + '-' + line[14:19])
-			try:
-				self.parsed.append(Income(self.affiliates[card], amount))
+            except:
+                print("Error de parseo no se encontro la identidad %s" % card)
 
-			except:
-				print("Error de parseo no se encontro la identidad %s" % card)
-
-		return self.parsed
+        return self.parsed
 
 class ParserINPREMA(object):
+    
+    """Extrae los datos de la planilla de INPREMA y los convierte en
+    una representación interna de los cobros"""
 
-	def __init__(self, filename, affiliates):
+    def __init__(self, filename, affiliates):
 
-		self.reader = csv.reader(open(filename))
-		self.affiliates = affiliates
-		self.parsed = list()
+        self.reader = csv.reader(open(filename))
+        self.affiliates = affiliates
+        self.parsed = list()
 
-	def parse(self):
-		
-		perdidos = 0
-		for row in self.reader:
+    def parse(self):
+        
+        """Se encarga de tomar linea por linea cada uno de los códigos de
+        cobro y asignarle la cantidad deducida, entregandola en una lista
+        de ::class::`Income`"""
+        
+        perdidos = 0
+        for row in self.reader:
 
-			amount = Decimal(row[2])
-			cobro = int(row[0])
-			try:
-				self.parsed.append(Income(self.affiliates[cobro], amount))
+            amount = Decimal(row[1])
+            cobro = int(row[0])
+            try:
+                self.parsed.append(Income(self.affiliates[cobro], amount))
 
-			except:
-				perdidos += 1
-				print("Error de parseo no se encontro la identidad %s" % cobro)
-				
-		print perdidos
-		return self.parsed
+            except:
+                perdidos += 1
+                print("Error de parseo no se encontro la identidad %s" % cobro)
+                
+        print perdidos
+        return self.parsed
 
 class Updater(object):
+    
+    """Actualiza estados de cuenta de acuerdo a los datos entregados por
+    ::class::`Income` registrando los motivos por los cuales se efectuó un
+    determinado cobro"""
+    
+    
+    def __init__(self, obligation, accounts, day):
 
-	def __init__(self, obligation, accounts, day):
+        self.obligation = obligation
+        self.accounts = accounts
+        self.day = day
+        self.registered = dict()
 
-		self.obligation = obligation
-		self.accounts = accounts
-		self.day = day
-		self.registered = dict()
+    def register_account(self, account, name):
+        
+        """Registra una cuenta para usarla como destino especifico"""
+        
+        self.registered[name] = account
 
-	def register_account(self, account, name):
+    def update(self, income):
+        
+        """Actualiza el estado de cuenta de acuerdo a un ::class::`Income`"""
+        
+        self.cuota(income)
+        for loan in income.affiliate.loans:
+            self.loan(loan, income)
+        self.extra(income)
+        if income.amount > 0:
+            
+            self.exceding(income)
 
-		self.registered[name] = account
+    def cuota(self, income):
 
-	def update(self, income):
+        if income.amount >= self.obligation:
 
-		self.cuota(income)
-		for loan in income.affiliate.loans:
-			self.loan(loan, income)
-		self.extra(income)
-		if income.amount > 0:
-			
-			self.exceding(income)
+            self.accounts[self.registered['cuota']]['amount'] += self.obligation
+            self.accounts[self.registered['cuota']]['number'] += 1
+            afiliado = database.get_affiliate(income.affiliate.id)
+            afiliado.pay_cuota(self.day.year, self.day.month)
+            income.amount -= self.obligation
+            database.create_deduction(income.affiliate, self.obligation, self.accounts[self.registered['cuota']])
 
-	def cuota(self, income):
+    def extra(self, income):
 
-		if income.amount >= self.obligation:
+        extras = sum(e.amount for e in income.affiliate.extras)
+        if income.amount >= extras:
+            income.amount -= extras
+            for extra in income.affiliate.extras:
+                self.accounts[extra.account]['amount'] += extra.amount
+                self.accounts[extra.account]['number'] += 1
+                extra.act()
+        else:
+            for extra in income.affiliate.extras:
+                if income.amount >= extra.amount:
+                    amount -= extra.amount
+                    self.accounts[extra.account]['amount'] += extra.amount
+                    self.accounts[extra.account]['number'] += 1
+                    extra.act()
 
-			self.accounts[self.registered['cuota']]['amount'] += self.obligation
-			self.accounts[self.registered['cuota']]['number'] += 1
-			afiliado = database.get_affiliate(income.affiliate.id)
-			afiliado.pay_cuota(self.day.year, self.day.month)
-			income.amount -= self.obligation
-			database.create_deduction(income.affiliate, self.obligation, self.accounts[self.registered['cuota']])
+    def exceding(self, income):
+        
+        self.accounts[self.registered['exceding']]['amount'] += income.amount
+        self.accounts[self.registered['exceding']]['number'] += 1
+        database.create_deduction(income.affiliate, income.amount, self.accounts[self.registered['exceding']])
+    
+    def delayed(income):
+        
+        for delayed in income.affiliate.delayed:
+            self.accounts[self.registered['delayed']]['amount'] += income.amount
+            self.accounts[self.registered['delayed']]['number'] += 1
+            delayed.act()
 
-	def extra(self, income):
+    def loan(self, loan, income):
 
-		extras = sum(e.amount for e in income.affiliate.extras)
-		if income.amount >= extras:
-			income.amount -= extras
-			for extra in income.affiliate.extras:
-				self.accounts[extra.account]['amount'] += extra.amount
-				self.accounts[extra.account]['number'] += 1
-				extra.act()
-		else:
-			for extra in income.affiliate.extras:
-				if income.amount >= extra.amount:
-					amount -= extra.amount
-					self.accounts[extra.account]['amount'] += extra.amount
-					self.accounts[extra.account]['number'] += 1
-					extra.act()
+        if income.amount == 0:
+            return
+        
+        payment = loan.get_payment()
+        if income.amount >= payment:
+            
+            loan = database.get_loan(loan.id)
+            
+            loan.pay(payment, "Planilla", self.day)
+            self.accounts[self.registered['loan']]['amount'] += payment
+            self.accounts[self.registered['loan']]['number'] += 1
+            income.amount -= payment
+            database.create_deduction(loan.affiliate, payment, self.accounts[self.registered['loan']])
 
-	def exceding(self, income):
-		
-		self.accounts[self.registered['exceding']]['amount'] += income.amount
-		self.accounts[self.registered['exceding']]['number'] += 1
-		database.create_deduction(income.affiliate, income.amount, self.accounts[self.registered['exceding']])
-	
-	def delayed(income):
-		
-		for delayed in income.affiliate.delayed:
-			self.accounts[self.registered['delayed']]['amount'] += income.amount
-			self.accounts[self.registered['delayed']]['number'] += 1
-			delayed.act()
-
-	def loan(self, loan, income):
-
-		if income.amount == 0:
-			return
-		
-		payment = loan.get_payment()
-		if income.amount >= payment:
-			
-			loan = database.get_loan(loan.id)
-			
-			loan.pay(payment, "Planilla", self.day)
-			self.accounts[self.registered['loan']]['amount'] += payment
-			self.accounts[self.registered['loan']]['number'] += 1
-			income.amount -= payment
-			database.create_deduction(loan.affiliate, payment, self.accounts[self.registered['loan']])
-
-		else:
-			loan.pay(income.amount, "Planilla", self.day)
-			self.accounts[self.registered['incomplete']]['amount'] += income.amount
-			self.accounts[self.registered['incomplete']]['number'] += 1
-			income.amount = 0
-			database.create_deduction(loan.affiliate, payment, self.accounts[self.registered['incomplete']])
+        else:
+            loan.pay(income.amount, "Planilla", self.day)
+            self.accounts[self.registered['incomplete']]['amount'] += income.amount
+            self.accounts[self.registered['incomplete']]['number'] += 1
+            income.amount = 0
+            database.create_deduction(loan.affiliate, payment, self.accounts[self.registered['incomplete']])
 
 class Corrector(object):
-	
-	def __init__(self, loans):
-		
-		self.affiliates = (l.affiliate for l in loans if len(l.affiliate.loans) == 2 and l.affiliate.payment == "Escalafon")
-	
-	def correct(self):
-		
-		for a in self.affiliates:
-			
-			if len(a.loans) == 2:
-			
-				loan.affiliate.loans[1].pays[0].revert()
-				loan.affiliate.loans[0].remove()
+    
+    def __init__(self, loans):
+        
+        self.affiliates = (l.affiliate for l in loans if len(l.affiliate.loans) == 2 and l.affiliate.payment == "Escalafon")
+    
+    def correct(self):
+        
+        for a in self.affiliates:
+            
+            if len(a.loans) == 2:
+            
+                loan.affiliate.loans[1].pays[0].revert()
+                loan.affiliate.loans[0].remove()
 
 class ReporteLine(object):
-	
-	def __init__(self, affiliate, amount):
-		
-		self.amount = amount
-		self.affiliate = affiliate
-	
-	def __str__(self):
-	
-		total = self.amount * Decimal(100)
-		zeros = '%(#)018d' % {"#":total}
-		if self.affiliate.cardID == None:
-			return ""
-		return self.affiliate.cardID.replace('-', '') + '0011' + zeros
+    
+    def __init__(self, affiliate, amount):
+        
+        self.amount = amount
+        self.affiliate = affiliate
+    
+    def __str__(self):
+    
+        total = self.amount * Decimal(100)
+        zeros = '%(#)018d' % {"#":total}
+        if self.affiliate.cardID == None:
+            return ""
+        return self.affiliate.cardID.replace('-', '') + '0011' + zeros
 
 class Reporter(object):
-	
-	def __init__(self, year, month):
-		
-		self.year = year
-		self.month = month
-		self.lines = []
-		self.filename = "./%(year)s%(month)02dCOPEMH.txt" % {'year':self.year, 'month':self.month}
-	
-	def create_delayed(self):
-		
-		affiliates = database.get_affiliates_by_payment("Escalafon")
-		for affiliate in affiliates:
-			
-			delayed = affiliate.get_delayed()
-			
-			if delayed != None: database.create_delayed(affiliate, delayed)
-	
-	def process_affiliates(self):
-		
-		affiliates = database.get_affiliates_by_payment("Escalafon")
-		obligation = database.get_obligation(self.year, self.month)
-		
-		for affiliate in affiliates:
-			
-			if not affiliate.active: continue
-			
-			amount = 0
-			
-			for e in affiliate.extras: amount += e.amount
-			
-			for loan in affiliate.loans: amount += loan.get_payment()
-			
-			amount += obligation
-			line = ReportLine(affiliate, amount)
-			self.lines.append(line)
-	
-	def write_file(self):
-		
-		f = open(self.filename, 'w')
-		start = "%(year)s%(month)02d" % {'year':int(year), 'month':int(month)}
-		
-		for line in self.lines:
-			str_line = str(line)
-			if str_line == "":
-				continue
-			l = start + str_line + "\n"
-			f.write(l)
-
+    
+    def __init__(self, year, month):
+        
+        self.year = year
+        self.month = month
+        self.lines = []
+        self.filename = "./%(year)s%(month)02dCOPEMH.txt" % {'year':self.year, 'month':self.month}
+    
+    def create_delayed(self):
+        
+        affiliates = database.get_affiliates_by_payment("Escalafon")
+        for affiliate in affiliates:
+            
+            delayed = affiliate.get_delayed()
+            
+            if delayed != None: database.create_delayed(affiliate, delayed)
+    
+    def process_affiliates(self):
+        
+        affiliates = database.get_affiliates_by_payment("Escalafon")
+        obligation = database.get_obligation(self.year, self.month)
+        
+        for affiliate in affiliates:
+            
+            if not affiliate.active: continue
+            
+            amount = 0
+            
+            for e in affiliate.extras: amount += e.amount
+            
+            for loan in affiliate.loans: amount += loan.get_payment()
+            
+            amount += obligation
+            line = ReportLine(affiliate, amount)
+            self.lines.append(line)
+    
+    def write_file(self):
+        
+        f = open(self.filename, 'w')
+        start = "%(year)s%(month)02d" % {'year':int(year), 'month':int(month)}
+        
+        for line in self.lines:
+            str_line = str(line)
+            if str_line == "":
+                continue
+            l = start + str_line + "\n"
+            f.write(l)

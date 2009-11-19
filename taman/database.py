@@ -23,83 +23,81 @@
 from model import *
 
 def get_affiliate(afiliacion):
-	
-	return Affiliate.get(afiliacion)
+    
+    return Affiliate.get(afiliacion)
 
 def get_loan(prestamo):
-	
-	return Loan.get(prestamo)
+    
+    return Loan.get(prestamo)
 
 def get_affiliates_by_payment(payment):
-	
-	return Affiliate.select(Affiliate.q.payment==payment)
+    
+    return Affiliate.select(Affiliate.q.payment==payment)
 
 def get_loans_by_period(start, end):
-	
-	query = "loan.start_date >= '%s' and loan.start_date <= '%s'" % (start, end)
+    
+    query = "loan.start_date >= '%s' and loan.start_date <= '%s'" % (start, end)
 
-	return Loans.q.select(query)
+    return Loans.q.select(query)
 
 def get_obligation(year, month, inprema=False):
-	
-	query = "obligation.year = %s and obligation.month = %s" % (year, month)
-	obligations = Obligation.select(query)
-	if inprema: return sum(o.inprema for o in obligations)
-	return sum(o.amount for o in obligations)
+    
+    query = "obligation.year = %s and obligation.month = %s" % (year, month)
+    obligations = Obligation.select(query)
+    if inprema: return sum(o.inprema for o in obligations)
+    return sum(o.amount for o in obligations)
 
 def get_accounts():
-	
-	return Account.select()
+    
+    return Account.select()
 
 def get_loan_account():
-	
-	return Account.get(659)
+    
+    return Account.get(659)
 
 def get_cuota_account():
-	
-	return Account.get(1)
+    
+    return Account.get(1)
 
 def get_exceding_account():
-	
-	return Account.get(674)
+    
+    return Account.get(674)
 
 def get_incomplete_account():
-	
-	return Account.get(659)
+    
+    return Account.get(659)
 
 def get_income_report(year, month):
-	
-	return PostReport.select("post_report.year = %s and post_report.month = %s "
-							 % (year, month))
+    
+    return PostReport.selectBy(year=year, month=month)
 
 def create_deduction(affiliate, amount, account):
-	
-	return Deduced(affiliate=affiliate, account=account, amount=amount)
+    
+    return Deduced(affiliate=affiliate, account=account, amount=amount)
 
 def create_report(accounts, year, month):
-	
-	report = PostReport(year=year, month=month)
-	for key in accounts:
-		if accounts[key]['amount'] != 0:
-			ReportAccount(name=key.name, amount=accounts[key]['amount'],
-					quantity=accounts[key]['number'], postReport=report)
-		
-	
-	return report
+    
+    report = PostReport(year=year, month=month)
+    for key in accounts:
+        if accounts[key]['amount'] != 0:
+            ReportAccount(name=key.name, amount=accounts[key]['amount'],
+                    quantity=accounts[key]['number'], postReport=report)
+        
+    
+    return report
 
 def create_other_report(accounts, year, month, other):
-	
-	report = OtherReport(year=year, month=month, payment=other)
-	for key in accounts:
-		if accounts[key]['amount'] != 0:
-			OtherAccount(amount=accounts[key]['amount'],
-					quantity=accounts[key]['number'], otherReport=report, account=key)
-	
-	return report
+    
+    report = OtherReport(year=year, month=month, payment=other)
+    for key in accounts:
+        if accounts[key]['amount'] != 0:
+            OtherAccount(amount=accounts[key]['amount'],
+                    quantity=accounts[key]['number'], otherReport=report, account=key)
+    
+    return report
 
 def create_delayed(affiliate, delayed):
-	
-	kw = {}
-	kw['affiliate'] = affiliate
-	kw['month'] = delayed.delayed()
-
+    
+    kw = dict()
+    kw['affiliate'] = affiliate
+    kw['month'] = delayed.delayed()

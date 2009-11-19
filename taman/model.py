@@ -3,7 +3,7 @@
 # model.py
 # This file is part of TurboAffiliate
 #
-# Copyright (c) 2007 Carlos Flores <cafg10@gmail.com>
+# Copyright (c) 2007 - 2009 Carlos Flores <cafg10@gmail.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@ from datetime import datetime, date
 from decimal import *
 from sqlobject import *
 
-scheme = 'mysql://root:gustavito@localhost/afiliados'
+scheme = 'mysql://asura:$a1ntcro$$@172.16.10.68/afiliados'
 connection = connectionForURI(scheme)
 sqlhub.processConnection = connection
 

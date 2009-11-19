@@ -13,18 +13,19 @@ def extraer_cambios():
 	for a in affiliates:
 	
 		inprema = None
-		try: inprema = int(a.escalafon)
-		except Exception, e: pass
+		try:
+			inprema = int(a.escalafon)
+		except Exception, e:
+			pass
 		
 		afiliados[inprema] = a
 	
 	obligacion = database.get_obligation(10, 2009, True)
 	obligacion = 228
-	print obligacion
 	cambios = dict()
 	for afiliado in afiliados: cambios[afiliado] = afiliados[afiliado].get_monthly() + obligacion
 	
-	parser = parser = core.ParserINPREMA('inprema.csv', afiliados)
+	parser = core.ParserINPREMA('inprema.csv', afiliados)
 	
 	for income in parser.parse():
 		try:
@@ -37,8 +38,8 @@ def extraer_cambios():
 	
 	del cambios[None]
 	
-	for numero in cambios: print "%s %s" % (numero, cambios[numero])
-	print len(cambios)
+	for numero in cambios:
+		print "%s %s" % (numero, cambios[numero])
 
 if __name__ == "__main__":
 	
