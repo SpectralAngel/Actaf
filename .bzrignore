@@ -4,3 +4,6 @@ taman/hola.txt
 debug.txt
 taman/debug.txt
 taman/dexter.xls
+.project
+.pydevproject
+.settings

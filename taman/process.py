@@ -64,7 +64,7 @@ def inprema(archivo, fecha):
 	"""Incializa la actualización de las aportaciones mediante la planilla de
 	INPREMA"""
 	
-	affiliates = database.get_affiliates_by_payment("INPREMA")
+	affiliates = database.get_affiliates_by_payment("INPREMA", True)
 	afiliados = dict()
 
 	for a in affiliates:

@@ -30,7 +30,10 @@ def get_loan(prestamo):
     
     return Loan.get(prestamo)
 
-def get_affiliates_by_payment(payment):
+def get_affiliates_by_payment(payment, active_only=False):
+    
+    if active_only:
+        return Affiliate.selectBy(payment=payment, active=True)
     
     return Affiliate.select(Affiliate.q.payment==payment)
 
@@ -38,13 +41,13 @@ def get_loans_by_period(start, end):
     
     query = "loan.start_date >= '%s' and loan.start_date <= '%s'" % (start, end)
 
-    return Loans.q.select(query)
+    return Loans.select(query)
 
 def get_obligation(year, month, inprema=False):
     
-    query = "obligation.year = %s and obligation.month = %s" % (year, month)
-    obligations = Obligation.select(query)
-    if inprema: return sum(o.inprema for o in obligations)
+    obligations = Obligation.selectBy(year=year, month=month)
+    if inprema:
+        return sum(o.inprema for o in obligations)
     return sum(o.amount for o in obligations)
 
 def get_accounts():
@@ -71,6 +74,10 @@ def get_income_report(year, month):
     
     return PostReport.selectBy(year=year, month=month)
 
+def efectuar_pago(loan, amount, day, method='Planilla'):
+    
+    loan.pay(amount, method, day)
+
 def create_deduction(affiliate, amount, account):
     
     return Deduced(affiliate=affiliate, account=account, amount=amount)
@@ -78,21 +85,20 @@ def create_deduction(affiliate, amount, account):
 def create_report(accounts, year, month):
     
     report = PostReport(year=year, month=month)
-    for key in accounts:
-        if accounts[key]['amount'] != 0:
-            ReportAccount(name=key.name, amount=accounts[key]['amount'],
-                    quantity=accounts[key]['number'], postReport=report)
-        
+    for account in accounts:
+        if accounts[account]['amount'] != 0:
+            ReportAccount(name=account.name, amount=accounts[account]['amount'],
+                    quantity=accounts[account]['number'], postReport=report)
     
     return report
 
 def create_other_report(accounts, year, month, other):
     
     report = OtherReport(year=year, month=month, payment=other)
-    for key in accounts:
-        if accounts[key]['amount'] != 0:
-            OtherAccount(amount=accounts[key]['amount'],
-                    quantity=accounts[key]['number'], otherReport=report, account=key)
+    for account in accounts:
+        if accounts[account]['amount'] != 0:
+            OtherAccount(amount=accounts[account]['amount'],
+                    quantity=accounts[account]['number'], otherReport=report, account=account)
     
     return report
 
