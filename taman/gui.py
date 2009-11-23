@@ -32,6 +32,7 @@ import locale
 import core
 import database
 import process
+import inprema
 
 class TaMan(object):
 	
@@ -45,6 +46,9 @@ class TaMan(object):
 		self.window = self.builder.get_object("main")
 		
 		self.connect_signals()
+		self.estado = self.builder.get_object('estado')
+		contexto = self.estado.get_context_id('Conexion')
+		self.estado.push(contexto, database.obtener_conexion())
 		
 		self.window.show()
 	
@@ -180,7 +184,7 @@ class TaMan(object):
 	
 	def on_generar_inprema_clicked(self, button):
 		
-		pass
+		inprema.extraer_cambios()
 	
 	###################
 	# Utility Functions
@@ -202,10 +206,9 @@ class TaMan(object):
 		column.set_sort_column_id(2)
 		
 		cuentas = gtk.ListStore(str, int, str)
-		vistaCuentas.set_view(cuentas)
+		vistaCuentas.set_model(cuentas)
 		
 		for ra in report.reportAccounts:
 			cuentas.append([ra.name, ra.quantity, locale.currency(ra.amount, True, True)])
 		
 		reporte.show_all()
-

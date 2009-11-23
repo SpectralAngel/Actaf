@@ -1,9 +1,9 @@
 #!/usr/bin/python
 # -*- coding: utf8 -*-
 
+import csv
 import database
 import core
-from model import *
 
 def extraer_cambios():
 	
@@ -24,24 +24,31 @@ def extraer_cambios():
 	obligacion = 228
 	cambios = dict()
 	for afiliado in afiliados:
-		cambios[afiliado] = afiliados[afiliado].get_monthly() + obligacion
+		a = afiliados[afiliado]
+		cambios[afiliado] = core.Extraccion(a, a.get_monthly() + obligacion)
+		if not a.active:
+			cambios[afiliado].cantidad = 0
+			cambios[afiliado].marca = 'C'
 	
 	parser = core.ParserINPREMA('inprema.csv', afiliados)
 	
 	for income in parser.parse():
 		try:
-			if income.amount == cambios[int(income.affiliate.escalafon)]:
+			if income.amount == cambios[int(income.affiliate.escalafon)].cantidad:
 				del cambios[int(income.affiliate.escalafon)]
-		
+			elif income.amount != cambios[int(income.affiliate.escalafon)].cantidad:
+				cambios[int(income.affiliate.escalafon)].marca = 'R'
 		except Exception, e:
 			print "%s %s" % (income.affiliate.escalafon, type(income.affiliate.escalafon))
 	
 	del cambios[None]
 	
+	dexter = csv.writer(open('dexter.csv', 'w'))
+	
 	for numero in cambios:
-		print "%s %s" % (numero, cambios[numero])
+		print cambios[numero]
+		dexter.writerow(cambios[numero].list())
 
 if __name__ == "__main__":
 	
 	extraer_cambios()
-

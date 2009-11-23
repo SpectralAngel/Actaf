@@ -27,7 +27,7 @@ import database
 import core
 from model import *
 
-def start(parser, dia, escalafon=False, cotizacion='INPREMA'):
+def start(parser, dia, inprema=True, cotizacion='INPREMA'):
 	
 	"""Inicia el proceso de actualización de las aportaciones utilizando la
 	planilla recibida"""
@@ -39,7 +39,7 @@ def start(parser, dia, escalafon=False, cotizacion='INPREMA'):
 		accounts[account]['number'] = 0
 		accounts[account]['amount'] = Decimal(0)
 	
-	updater = core.Updater(database.get_obligation(dia.year, dia.month, escalafon),
+	updater = core.Updater(database.get_obligation(dia.year, dia.month, inprema),
 							accounts, dia)
 	
 	updater.register_account(database.get_loan_account(), 'loan')
@@ -52,7 +52,7 @@ def start(parser, dia, escalafon=False, cotizacion='INPREMA'):
 		updater.update(income)
 	
 	reporte = None
-	if escalafon == False:
+	if inprema:
 		reporte = database.create_other_report(accounts, dia.year, dia.month, cotizacion)
 	else:
 		reporte = database.create_report(accounts, dia.year, dia.month)

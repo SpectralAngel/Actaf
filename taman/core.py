@@ -68,7 +68,7 @@ class ParserINPREMA(object):
     una representación interna de los cobros"""
     
     def __init__(self, filename, affiliates):
-
+        
         self.reader = csv.reader(open(filename))
         self.affiliates = affiliates
         self.parsed = list()
@@ -81,7 +81,7 @@ class ParserINPREMA(object):
         
         perdidos = 0
         for row in self.reader:
-
+            
             amount = Decimal(row[2])
             cobro = int(row[0])
             try:
@@ -136,7 +136,7 @@ class Updater(object):
             afiliado = database.get_affiliate(income.affiliate.id)
             afiliado.pay_cuota(self.day.year, self.day.month)
             income.amount -= self.obligation
-            database.create_deduction(income.affiliate, self.obligation, self.accounts[self.registered['cuota']])
+            database.create_deduction(income.affiliate, self.obligation, self.registered['cuota'])
     
     def extra(self, income):
         
@@ -167,7 +167,7 @@ class Updater(object):
         
         self.accounts[self.registered['exceding']]['amount'] += income.amount
         self.accounts[self.registered['exceding']]['number'] += 1
-        database.create_deduction(income.affiliate, income.amount, self.accounts[self.registered['exceding']])
+        database.create_deduction(income.affiliate, income.amount, self.registered['exceding'])
     
     def delayed(income):
         
@@ -201,15 +201,15 @@ class Updater(object):
             self.accounts[self.registered['loan']]['amount'] += payment
             self.accounts[self.registered['loan']]['number'] += 1
             income.amount -= payment
-            database.create_deduction(loan.affiliate, payment, self.accounts[self.registered['loan']])
+            database.create_deduction(loan.affiliate, payment, self.registered['loan'])
         # Cobrar lo que queda en las deducciones y marcalo como cuota incompleta
         # de prestamo
         else:
             database.efectuar_pago(loan, income.amount, self.day)
             self.accounts[self.registered['incomplete']]['amount'] += income.amount
             self.accounts[self.registered['incomplete']]['number'] += 1
+            database.create_deduction(loan.affiliate, income.amount, self.registered['incomplete'])
             income.amount = 0
-            database.create_deduction(loan.affiliate, payment, self.accounts[self.registered['incomplete']])
 
 class Corrector(object):
     
@@ -298,3 +298,19 @@ class Reporter(object):
                 continue
             l = start + str_line + "\n"
             f.write(l)
+
+class Extraccion(object):
+    
+    def __init__(self, afiliado, cantidad):
+        
+        self.afiliado = afiliado
+        self.cantidad = cantidad
+        self.marca = 'N'
+    
+    def list(self):
+        
+        return [self.afiliado.escalafon, self.cantidad, self.marca]
+    
+    def __str__(self):
+        
+        return self.afiliado.escalafon + ' ' + str(self.cantidad) + ' ' + self.marca

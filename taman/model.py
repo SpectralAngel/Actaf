@@ -24,7 +24,7 @@ from datetime import datetime, date
 from decimal import *
 from sqlobject import *
 
-scheme = 'mysql://asura:$a1ntcro$$@172.16.10.68/afiliados2'
+scheme = 'mysql://asura:$a1ntcro$$@172.16.10.68/afiliados'
 connection = connectionForURI(scheme)
 sqlhub.processConnection = connection
 
@@ -102,7 +102,7 @@ class Affiliate(SQLObject):
 	
 	def get_delayed(self):
 		
-		for cuota in self.cuotaTable:
+		for cuota in self.cuotaTables:
 			
 			if cuota.delayed() != Zero:
 				
@@ -796,7 +796,7 @@ class Extra(SQLObject):
 	
 	def to_deduced(self):
 		
-		kw = {}
+		kw = dict()
 		kw['amount'] = self.amount
 		kw['affiliate'] = self.affiliate
 		kw['account'] = self.account
@@ -805,13 +805,13 @@ class Extra(SQLObject):
 			
 			cuota = self.affiliate.get_delayed()
 			month = cuota.delayed()
-			kw['reason'] = "Cuota Retrasada %s de %s" % (cuota.year, month)
+			kw['detail'] = "Cuota Retrasada %s de %s" % (month, cuota.year)
 		
 		Deduced(**kw)
 	
 	def to_other(self):
 		
-		kw = {}
+		kw = dict()
 		kw['amount'] = self.amount
 		kw['affiliate'] = self.affiliate
 		kw['account'] = self.account
@@ -844,7 +844,7 @@ class Deduction(SQLObject):
 	
 	def refinance(self, refinancedLoan):
 		
-		kw = {}
+		kw = dict()
 		kw['refinancedLoan'] = refinancedLoan
 		kw['name'] = self.name
 		kw['amount'] = self.amount
@@ -856,7 +856,7 @@ class Deduction(SQLObject):
 	
 	def remove(self, payedLoan):
 		
-		kw = {}
+		kw = dict()
 		kw['payedLoan'] = payedLoan
 		kw['name'] = self.name
 		kw['amount'] = self.amount

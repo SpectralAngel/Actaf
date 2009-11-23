@@ -22,6 +22,10 @@
 
 from model import *
 
+def obtener_conexion():
+    
+    return scheme
+
 def get_affiliate(afiliacion):
     
     return Affiliate.get(afiliacion)
@@ -72,7 +76,7 @@ def get_incomplete_account():
 
 def get_income_report(year, month):
     
-    return PostReport.selectBy(year=year, month=month)
+    return PostReport.selectBy(year=year, month=month)[0]
 
 def efectuar_pago(loan, amount, day, method='Planilla'):
     
