@@ -226,7 +226,7 @@ class Corrector(object):
                 loan.affiliate.loans[1].pays[0].revert()
                 loan.affiliate.loans[0].remove()
 
-class ReporteLine(object):
+class ReportLine(object):
     
     """Representacion interna de los valores a deducir en la planilla de
     Escalafon"""
@@ -290,7 +290,7 @@ class Reporter(object):
     def write_file(self):
         
         f = open(self.filename, 'w')
-        start = "%(year)s%(month)02d" % {'year':int(year), 'month':int(month)}
+        start = "%(year)s%(month)02d" % {'year':int(self.year), 'month':int(self.month)}
         vacio = str()
         for line in self.lines:
             str_line = str(line)

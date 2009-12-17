@@ -211,7 +211,7 @@
     </child>
   </object>
   <object class="GtkWindow" id="main">
-    <property name="title" translatable="yes">TaMan</property>
+    <property name="title" translatable="yes">ActAf</property>
     <property name="window_position">center</property>
     <property name="default_width">425</property>
     <property name="default_height">320</property>

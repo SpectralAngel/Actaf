@@ -34,14 +34,14 @@ import database
 import process
 import inprema
 
-class TaMan(object):
+class MainWindow(object):
 	
 	"""GUI class for Afiliate management"""
 	
 	def __init__(self):
 		
 		self.builder = gtk.Builder()
-		self.builder.add_from_file("taman.glade")
+		self.builder.add_from_file("actaf.glade")
 		
 		self.window = self.builder.get_object("main")
 		
@@ -82,7 +82,7 @@ class TaMan(object):
 		
 		acerca = self.builder.get_object("acerca")
 		
-		acerca.set_version("0.1")
+		acerca.set_version("0.2")
 		acerca.show()
 	
 	def on_update_clicked(self, button):
@@ -162,6 +162,7 @@ class TaMan(object):
 			
 			reporter = core.Reporter(int(anio.get_value()), int(mes.get_value()))
 			reporter.process_affiliates()
+			reporter.write_file()
 	
 	def on_posteo_inprema_clicked(self, button):
 		

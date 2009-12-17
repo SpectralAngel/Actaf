@@ -33,7 +33,7 @@ try:
 except:
 	sys.exit(1)
 
-from taman import gui
+from actaf import gui
 
 if __name__ == "__main__":
 	
@@ -45,6 +45,6 @@ if __name__ == "__main__":
 	
 	locale.setlocale(locale.LC_ALL, "")
 	
-	taman = gui.TaMan()
+	actaf = gui.MainWindow()
 	gtk.main()
 
