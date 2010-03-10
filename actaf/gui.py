@@ -4,7 +4,7 @@
 # gui.py
 # This file is part of TaMan
 #
-# Copyright (C) 2009 - Carlos Flores
+# Copyright (C) 2009, 2010 Carlos Flores <cafg10@gmail.com>
 #
 # TaMan is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -114,28 +114,8 @@ class MainWindow(object):
 	
 	def on_correct_clicked(self, button):
 		
-		inicio = self.builder.get_object("inicio")
-		fin = self.builder.get_object("fin")
-		
-		# Cambiar las fechas a mostrar en el selector de periodo
-		hoy = date.today()
-		
-		inicio.select_month(hoy.month-1, hoy.year)
-		inicio.select_day(1)
-		
-		fin.select_month(hoy.month-1, hoy.year)
-		fin.select_day(hoy.day)
-		
-		ventana = self.builder.get_object("correccion")
-		
-		respuesta = ventana.run()
-		ventana.hide()
-		
-		if respuesta == gtk.RESPONSE_OK:
-		
-			corrector = core.Corrector(get_loans_by_period(inicio.get_date(),
-										fin.get_date()))
-			corrector.correct()
+		corrector = core.Corrector()
+		corrector.corregir_prestamos()
 	
 	def on_report_clicked(self, button):
 		
@@ -160,9 +140,9 @@ class MainWindow(object):
 		generador.hide()
 		if respuesta == gtk.RESPONSE_OK:
 			
-			reporter = core.Reporter(int(anio.get_value()), int(mes.get_value()))
-			reporter.process_affiliates()
-			reporter.write_file()
+			reporter = core.Generador(int(anio.get_value()), int(mes.get_value()))
+			reporter.procesar_afiliados()
+			reporter.escribir_archivo()
 	
 	def on_posteo_inprema_clicked(self, button):
 		

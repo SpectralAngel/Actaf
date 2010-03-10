@@ -2,37 +2,37 @@
 # -*- coding: utf8 -*-
 #
 # core.py
-# This file is part of TaMan
+# Copyright 2009, 2010 by Carlos Flores <cafg10@gmail.com>
+# This file is part of Actaf.
 #
-# Copyright (C) 2009 - Carlos Flores
-#
-# TaMan is free software; you can redistribute it and/or modify
+# Actaf is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
+# the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# TaMan is distributed in the hope that it will be useful,
+# Actaf is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with TaMan; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin St, Fifth Floor, 
-# Boston, MA  02110-1301  USA
+# along with Actaf.  If not, see <http://www.gnu.org/licenses/>.
 
 from decimal import Decimal
 import csv
 import database
+import retrasadas
 
-class Income(object):
+hundred = Decimal("100")
+
+class Ingreso(object):
     
     """Almacena el afiliado y la deduccion realizada para registrar los cobros
     en el sistema"""
     
-    def __init__(self, affiliate, amount):
+    def __init__(self, afiliado, cantidad):
         
-        (self.affiliate, self.amount) = (affiliate, amount)
+        self.afiliado, self.cantidad = (afiliado, cantidad)
 
 class Parser(object):
     
@@ -49,20 +49,20 @@ class Parser(object):
         
         """Se encarga de tomar linea por linea cada uno de los codigos de
         Identidad y asignarle la cantidad deducida, entregandola en una lista
-        de :class:`Income`"""
+        de :class:`Ingreso`"""
         
         for line in self.file:
 
             amount = Decimal(str(line[94:111])) / hundred
             card = str(line[6:10] + '-' + line[10:14] + '-' + line[14:19])
             try:
-                self.parsed.append(Income(self.affiliates[card], amount))
+                self.parsed.append(Ingreso(self.affiliates[card], amount))
             except:
                 print("Error de parseo no se encontro la identidad %s" % card)
         
         return self.parsed
 
-class ParserINPREMA(object):
+class AnalizadorINPREMA(object):
     
     """Extrae los datos de la planilla de INPREMA y los convierte en
     una representación interna de los cobros"""
@@ -77,7 +77,7 @@ class ParserINPREMA(object):
         
         """Se encarga de tomar linea por linea cada uno de los códigos de
         cobro y asignarle la cantidad deducida, entregandola en una lista
-        de :class:`Income`"""
+        de :class:`Ingreso`"""
         
         perdidos = 0
         for row in self.reader:
@@ -85,7 +85,7 @@ class ParserINPREMA(object):
             amount = Decimal(row[2])
             cobro = int(row[0])
             try:
-                self.parsed.append(Income(self.affiliates[cobro], amount))
+                self.parsed.append(Ingreso(self.affiliates[cobro], amount))
             
             except:
                 perdidos += 1
@@ -94,137 +94,132 @@ class ParserINPREMA(object):
         print perdidos
         return self.parsed
 
-class Updater(object):
+class Actualizador(object):
     
     """Actualiza estados de cuenta de acuerdo a los datos entregados por
-    :class:`Income` registrando los motivos por los cuales se efectuó un
+    :class:`Ingreso` registrando los motivos por los cuales se efectuó un
     determinado cobro"""
     
-    def __init__(self, obligation, accounts, day):
+    def __init__(self, obligacion, accounts, day):
         
-        self.obligation = obligation
-        self.accounts = accounts
+        self.obligacion = obligacion
+        self.cuentas = accounts
         self.day = day
-        self.registered = dict()
+        self.registro = dict()
     
-    def register_account(self, account, name):
+    def registrar_cuenta(self, account, name):
         
         """Registra una cuenta para usarla como destino especifico"""
         
-        self.registered[name] = account
+        self.registro[name] = account
     
-    def update(self, income):
+    def update(self, ingreso):
         
-        """Actualiza el estado de cuenta de acuerdo a un :class:`Income`"""
+        """Actualiza el estado de cuenta de acuerdo a un :class:`Ingreso`"""
         
-        self.cuota(income)
-        for loan in income.affiliate.loans:
-            self.loan(loan, income)
-        self.extra(income)
-        if income.amount > 0:
+        self.cuota(ingreso)
+        
+        for loan in ingreso.afiliado.loans:
+            self.prestamo(loan, ingreso)
+        
+        self.extra(ingreso)
+        if ingreso.cantidad > 0:
             
-            self.exceding(income)
+            self.excedente(ingreso)
     
-    def cuota(self, income):
+    def cuota(self, ingreso):
         
         """Acredita la cuota de aportacion en el estado de cuenta"""
         
-        if income.amount >= self.obligation:
+        if ingreso.cantidad >= self.obligacion:
 
-            self.accounts[self.registered['cuota']]['amount'] += self.obligation
-            self.accounts[self.registered['cuota']]['number'] += 1
-            afiliado = database.get_affiliate(income.affiliate.id)
+            self.cuentas[self.registro['cuota']]['amount'] += self.obligacion
+            self.cuentas[self.registro['cuota']]['number'] += 1
+            afiliado = database.get_affiliate(ingreso.afiliado.id)
             afiliado.pay_cuota(self.day.year, self.day.month)
-            income.amount -= self.obligation
-            database.create_deduction(income.affiliate, self.obligation, self.registered['cuota'])
+            ingreso.cantidad -= self.obligacion
+            database.create_deduction(ingreso.afiliado, self.obligacion, self.registro['cuota'])
     
-    def extra(self, income):
+    def extra(self, ingreso):
         
         """Acredita las deducciones extra en el estado de cuenta"""
         
-        extras = sum(e.amount for e in income.affiliate.extras)
+        extras = sum(e.amount for e in ingreso.afiliado.extras)
         # La cantidad remanente excede o es igual a la cantidad sumada de todas
         # las extras
-        if income.amount >= extras:
-            income.amount -= extras
-            for extra in income.affiliate.extras:
-                self.accounts[extra.account]['amount'] += extra.amount
-                self.accounts[extra.account]['number'] += 1
+        if ingreso.cantidad >= extras:
+            ingreso.cantidad -= extras
+            for extra in ingreso.afiliado.extras:
+                self.cuentas[extra.account]['amount'] += extra.amount
+                self.cuentas[extra.account]['number'] += 1
                 extra.act()
         # La cantidad solo cubre parcialmente las extras
         else:
-            for extra in income.affiliate.extras:
-                if income.amount >= extra.amount:
-                    amount -= extra.amount
-                    self.accounts[extra.account]['amount'] += extra.amount
-                    self.accounts[extra.account]['number'] += 1
+            for extra in ingreso.afiliado.extras:
+                if ingreso.cantidad >= extra.amount:
+                    ingreso.cantidad -= extra.amount
+                    self.cuentas[extra.account]['amount'] += extra.amount
+                    self.cuentas[extra.account]['number'] += 1
                     extra.act()
     
-    def exceding(self, income):
+    def excedente(self, ingreso):
         
         """Guarda registro acerca de las cantidades extra que han sido deducidas
         por el sistema, estas serán las devoluciones a efectuar en el mes."""
         
-        self.accounts[self.registered['exceding']]['amount'] += income.amount
-        self.accounts[self.registered['exceding']]['number'] += 1
-        database.create_deduction(income.affiliate, income.amount, self.registered['exceding'])
-    
-    def delayed(income):
-        
-        """Calculo de cuotas de aportacion retrasada
-        
-        .. note::
-            
-            Este metodo no se utiliza aún, requiere una gran revisión del código
-            de TurboAffiliate.
-        """
-        
-        for delayed in income.affiliate.delayed:
-            self.accounts[self.registered['delayed']]['amount'] += income.amount
-            self.accounts[self.registered['delayed']]['number'] += 1
-            delayed.act()
+        self.cuentas[self.registro['excedente']]['amount'] += ingreso.cantidad
+        self.cuentas[self.registro['excedente']]['number'] += 1
+        database.create_deduction(ingreso.afiliado, ingreso.cantidad, self.registered['excedente'])
 
-    def loan(self, loan, income):
+    def prestamo(self, prestamo, ingreso):
         
         """Actualiza los estados de cuenta de prestamos del afiliado"""
         
-        if income.amount == 0:
+        if ingreso.cantidad == 0:
             return
         
-        payment = loan.get_payment()
+        payment = prestamo.get_payment()
         
         # pagar la cuota de prestamo completa
-        if income.amount >= payment:
+        if ingreso.cantidad >= payment:
             
-            database.efectuar_pago(loan, payment, self.day)
+            database.efectuar_pago(prestamo, payment, self.day)
             
-            self.accounts[self.registered['loan']]['amount'] += payment
-            self.accounts[self.registered['loan']]['number'] += 1
-            income.amount -= payment
-            database.create_deduction(loan.affiliate, payment, self.registered['loan'])
+            self.cuentas[self.registro['prestamo']]['amount'] += payment
+            self.cuentas[self.registro['prestamo']]['number'] += 1
+            ingreso.cantidad -= payment
+            database.create_deduction(prestamo.afiliado, payment, self.registro['prestamo'])
         # Cobrar lo que queda en las deducciones y marcalo como cuota incompleta
         # de prestamo
         else:
-            database.efectuar_pago(loan, income.amount, self.day)
-            self.accounts[self.registered['incomplete']]['amount'] += income.amount
-            self.accounts[self.registered['incomplete']]['number'] += 1
-            database.create_deduction(loan.affiliate, income.amount, self.registered['incomplete'])
-            income.amount = 0
+            database.efectuar_pago(prestamo, ingreso.cantidad, self.day)
+            self.cuentas[self.registro['incomplete']]['amount'] += ingreso.cantidad
+            self.cuentas[self.registro['incomplete']]['number'] += 1
+            database.create_deduction(prestamo.afiliado, ingreso.cantidad, self.registered['incomplete'])
+            ingreso.cantidad = 0
 
 class Corrector(object):
     
     def __init__(self, loans):
-        
-        self.affiliates = (l.affiliate for l in loans if len(l.affiliate.loans) == 2 and l.affiliate.payment == "Escalafon")
     
-    def correct(self):
+        self.corregir = open('correcciones.txt', 'w')
+        self.prestamos = database.get_all_loans()
         
-        for a in self.affiliates:
+    def corregir_prestamos(self):
+    
+        for prestamo in self.prestamos:
             
-            if len(a.loans) == 2:
+            futuro = prestamo.future()
+            if futuro == list():
+                self.corregir.write(str(prestamo.id))
+                self.corregir.write('\n')
+                continue
             
-                loan.affiliate.loans[1].pays[0].revert()
-                loan.affiliate.loans[0].remove()
+            ultimo_pago = futuro[-1]['payment']
+            ultimo_mes = futuro[-1]['enum']
+            if ultimo_pago < prestamo.payment and ultimo_mes == prestamo.months:
+                prestamo.debt += ((prestamo.payment - ultimo_pago) * 2 / 3).quantize(Decimal("0.01"))
+                print "Corregido prestamo %s" % prestamo.id
 
 class ReportLine(object):
     
@@ -234,17 +229,17 @@ class ReportLine(object):
     def __init__(self, affiliate, amount):
         
         self.amount = amount
-        self.affiliate = affiliate
+        self.afiliado = affiliate
     
     def __str__(self):
     
         total = self.amount * Decimal(100)
         zeros = '%(#)018d' % {"#":total}
-        if self.affiliate.cardID == None:
+        if self.afiliado.cardID == None:
             return str()
-        return self.affiliate.cardID.replace('-', '') + '0011' + zeros
+        return self.afiliado.cardID.replace('-', '') + '0011' + zeros
 
-class Reporter(object):
+class Generador(object):
     
     """Permite generar la planilla de Escalafon a partir de los estados de
     cuenta de los afiliados"""
@@ -256,38 +251,42 @@ class Reporter(object):
         self.lines = list()
         self.filename = "./%(year)s%(month)02dCOPEMH.txt" % {'year':self.year, 'month':self.month}
     
-    def create_delayed(self):
+    def crear_retrasadas(self):
         
         """Crea las cuotas retrasadas para los afiliados"""
         
-        affiliates = database.get_affiliates_by_payment("Escalafon")
-        for affiliate in affiliates:
-            
-            delayed = affiliate.get_delayed()
-            
-            if delayed != None:
-                database.create_delayed(affiliate, delayed)
+        for retrasada in retrasadas.procesar_retrasadas('Escalafon'):
     
-    def process_affiliates(self):
+            retrasada.crear_extra()
+    
+    def procesar_afiliados(self):
         
-        affiliates = database.get_affiliates_by_payment("Escalafon", True)
+        """Calcula las cantidades a pagar por los afiliados"""
+        
+        afiliados = database.get_affiliates_by_payment("Escalafon", True)
         obligation = database.get_obligation(self.year, self.month)
         
-        for affiliate in affiliates:
+        cantidad = 0
         
-            amount = 0
+        for afiliado in afiliados:
+        
+            cantidad = 0
             
-            for e in affiliate.extras:
-                amount += e.amount
+            for e in afiliado.extras:
+                cantidad += e.amount
             
-            for loan in affiliate.loans:
-                amount += loan.get_payment()
+            for prestamo in afiliado.loans:
+                cantidad += prestamo.get_payment()
+                # Asegurarse que solo un prestamo sea cobrado
+                break
             
-            amount += obligation
-            line = ReportLine(affiliate, amount)
+            cantidad += obligation
+            line = ReportLine(afiliado, cantidad)
             self.lines.append(line)
     
-    def write_file(self):
+    def escribir_archivo(self):
+        
+        """Escribe el archivo de cobros que se enviará"""
         
         f = open(self.filename, 'w')
         start = "%(year)s%(month)02d" % {'year':int(self.year), 'month':int(self.month)}
@@ -298,6 +297,21 @@ class Reporter(object):
                 continue
             l = start + str_line + "\n"
             f.write(l)
+    
+    def agregar_ayuda_medica(self):
+        
+        """Agrega una Ayuda Médica aprobada a todos los afiliados de Escalafón"""
+        
+        afiliados = database.get_affiliates_by_payment("Escalafon", True)
+        kw = dict()
+        kw['account'] = database.get_help_account()
+        kw['amount'] = 50
+        kw['months'] = 1
+        
+        for afiliado in afiliados:
+            
+            kw['affiliate'] = afiliado
+            database.Extra(**kw)
 
 class Extraccion(object):
     

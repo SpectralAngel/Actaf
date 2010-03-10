@@ -1,5 +1,23 @@
 #!/usr/bin/python
 # -*- coding: utf8 -*-
+#
+# inprema.py
+#
+# Copyright 2009, 2010 by Carlos Flores <cafg10@gmail.com>
+# This file is part of Actaf.
+#
+# Actaf is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Actaf is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Actaf.  If not, see <http://www.gnu.org/licenses/>.
 
 import csv
 import database
@@ -30,16 +48,16 @@ def extraer_cambios():
 			cambios[afiliado].cantidad = 0
 			cambios[afiliado].marca = 'C'
 	
-	parser = core.ParserINPREMA('inprema.csv', afiliados)
+	parser = core.AnalizadorINPREMA('inprema.csv', afiliados)
 	
 	for income in parser.parse():
 		try:
-			if income.amount == cambios[int(income.affiliate.escalafon)].cantidad:
-				del cambios[int(income.affiliate.escalafon)]
-			elif income.amount != cambios[int(income.affiliate.escalafon)].cantidad:
-				cambios[int(income.affiliate.escalafon)].marca = 'R'
+			if income.cantidad == cambios[int(income.afiliado.escalafon)].cantidad:
+				del cambios[int(income.afiliado.escalafon)]
+			elif income.cantidad != cambios[int(income.afiliado.escalafon)].cantidad:
+				cambios[int(income.afiliado.escalafon)].marca = 'R'
 		except Exception, e:
-			print "%s %s" % (income.affiliate.escalafon, type(income.affiliate.escalafon))
+			print "%s %s" % (income.afiliado.escalafon, type(income.afiliado.escalafon))
 	
 	del cambios[None]
 	

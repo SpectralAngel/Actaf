@@ -2,30 +2,26 @@
 # -*- coding: utf8 -*-
 #
 # process.py
-# This file is part of TaMan
+# Copyright 2009, 2010 by Carlos Flores <cafg10@gmail.com>
+# This file is part of Actaf.
 #
-# Copyright (C) 2009 - Carlos Flores
-#
-# TaMan is free software; you can redistribute it and/or modify
+# Actaf is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
+# the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# TaMan is distributed in the hope that it will be useful,
+# Actaf is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with TaMan; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin St, Fifth Floor, 
-# Boston, MA  02110-1301  USA
+# along with Actaf.  If not, see <http://www.gnu.org/licenses/>.
 
 from decimal import Decimal
 
 import database
 import core
-from model import *
 
 def start(parser, dia, inprema=True, cotizacion='INPREMA'):
 	
@@ -39,13 +35,13 @@ def start(parser, dia, inprema=True, cotizacion='INPREMA'):
 		accounts[account]['number'] = 0
 		accounts[account]['amount'] = Decimal(0)
 	
-	updater = core.Updater(database.get_obligation(dia.year, dia.month, inprema),
+	updater = core.Actualizador(database.get_obligation(dia.year, dia.month, inprema),
 							accounts, dia)
 	
-	updater.register_account(database.get_loan_account(), 'loan')
-	updater.register_account(database.get_cuota_account(), 'cuota')
-	updater.register_account(database.get_incomplete_account(), 'incomplete')
-	updater.register_account(database.get_exceding_account(), 'exceding')
+	updater.registrar_cuenta(database.get_loan_account(), 'loan')
+	updater.registrar_cuenta(database.get_cuota_account(), 'cuota')
+	updater.registrar_cuenta(database.get_incomplete_account(), 'incomplete')
+	updater.registrar_cuenta(database.get_exceding_account(), 'exceding')
 	
 	# Cambiar por un par de acciones que muestren progreso
 	for income in parser.parse():
@@ -77,7 +73,8 @@ def inprema(archivo, fecha):
 	
 		afiliados[inprema] = a
 
-	parser = core.ParserINPREMA(archivo, afiliados)
+	parser = core.AnalizadorINPREMA(archivo, afiliados)
 
 	reporte = start(parser, fecha)
-
+	
+	return reporte

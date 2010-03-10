@@ -1,24 +1,23 @@
 #!/usr/bin/env python
 # -*- coding: utf8 -*-
+#
 # database.py
-# This file is part of TaMan
 #
-# Copyright (C) 2009 - Carlos Flores
+# Copyright 2009, 2010 by Carlos Flores <cafg10@gmail.com>
+# This file is part of Actaf.
 #
-# TaMan is free software; you can redistribute it and/or modify
+# Actaf is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
+# the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# TaMan is distributed in the hope that it will be useful,
+# Actaf is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with TaMan; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin St, Fifth Floor, 
-# Boston, MA  02110-1301  USA
+# along with Actaf.  If not, see <http://www.gnu.org/licenses/>.
 
 from model import *
 
@@ -27,6 +26,8 @@ def obtener_conexion():
     return scheme
 
 def get_affiliate(afiliacion):
+    
+    """Obtiene un afiliado por número de afiliación""" 
     
     return Affiliate.get(afiliacion)
 
@@ -41,11 +42,19 @@ def get_affiliates_by_payment(payment, active_only=False):
     
     return Affiliate.select(Affiliate.q.payment==payment)
 
+def get_all_affiliates():
+    
+    return Affiliate.select()
+
 def get_loans_by_period(start, end):
     
     query = "loan.start_date >= '%s' and loan.start_date <= '%s'" % (start, end)
 
-    return Loans.select(query)
+    return Loan.select(query)
+
+def get_all_loans():
+    
+    return Loan.select()
 
 def get_obligation(year, month, inprema=False):
     
@@ -73,6 +82,10 @@ def get_exceding_account():
 def get_incomplete_account():
     
     return Account.get(659)
+
+def get_help_account():
+    
+    return Account.get(495)
 
 def get_income_report(year, month):
     
@@ -106,8 +119,3 @@ def create_other_report(accounts, year, month, other):
     
     return report
 
-def create_delayed(affiliate, delayed):
-    
-    kw = dict()
-    kw['affiliate'] = affiliate
-    kw['month'] = delayed.delayed()
