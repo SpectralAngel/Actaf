@@ -78,7 +78,12 @@ class Affiliate(SQLObject):
     def get_monthly(self):
         
         extras = sum(e.amount for e in self.extras)
-        loans = sum(l.get_payment() for l in self.loans)
+        loans = Zero
+        
+        for loan in self.loans:
+        	
+        	loans += loan.get_payment()
+        	break
         
         return extras + loans
     

@@ -117,6 +117,8 @@ class Actualizador(object):
         
         """Actualiza el estado de cuenta de acuerdo a un :class:`Ingreso`"""
         
+        print ingreso.afiliado.id, ingreso.afiliado.escalafon, ingreso.cantidad
+        
         self.cuota(ingreso)
         
         for loan in ingreso.afiliado.loans:
@@ -169,7 +171,7 @@ class Actualizador(object):
         
         self.cuentas[self.registro['excedente']]['amount'] += ingreso.cantidad
         self.cuentas[self.registro['excedente']]['number'] += 1
-        database.create_deduction(ingreso.afiliado, ingreso.cantidad, self.registered['excedente'])
+        database.create_deduction(ingreso.afiliado, ingreso.cantidad, self.registro['excedente'])
 
     def prestamo(self, prestamo, ingreso):
         
@@ -188,14 +190,14 @@ class Actualizador(object):
             self.cuentas[self.registro['prestamo']]['amount'] += payment
             self.cuentas[self.registro['prestamo']]['number'] += 1
             ingreso.cantidad -= payment
-            database.create_deduction(prestamo.afiliado, payment, self.registro['prestamo'])
+            database.create_deduction(ingreso.afiliado, payment, self.registro['prestamo'])
         # Cobrar lo que queda en las deducciones y marcalo como cuota incompleta
         # de prestamo
         else:
             database.efectuar_pago(prestamo, ingreso.cantidad, self.day)
             self.cuentas[self.registro['incomplete']]['amount'] += ingreso.cantidad
             self.cuentas[self.registro['incomplete']]['number'] += 1
-            database.create_deduction(prestamo.afiliado, ingreso.cantidad, self.registered['incomplete'])
+            database.create_deduction(ingreso.afiliado, ingreso.cantidad, self.registro['incomplete'])
             ingreso.cantidad = 0
 
 class Corrector(object):

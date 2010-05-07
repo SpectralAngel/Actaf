@@ -38,10 +38,10 @@ def start(parser, dia, inprema=True, cotizacion='INPREMA'):
 	updater = core.Actualizador(database.get_obligation(dia.year, dia.month, inprema),
 							accounts, dia)
 	
-	updater.registrar_cuenta(database.get_loan_account(), 'loan')
+	updater.registrar_cuenta(database.get_loan_account(), 'prestamo')
 	updater.registrar_cuenta(database.get_cuota_account(), 'cuota')
 	updater.registrar_cuenta(database.get_incomplete_account(), 'incomplete')
-	updater.registrar_cuenta(database.get_exceding_account(), 'exceding')
+	updater.registrar_cuenta(database.get_exceding_account(), 'excedente')
 	
 	# Cambiar por un par de acciones que muestren progreso
 	for income in parser.parse():
