@@ -148,7 +148,7 @@ class Actualizador(object):
         
         """Acredita los reintegros en el estado de cuenta"""
         
-        if ingreso >= reintegro.monto:
+        if ingreso >= reintegro.monto and not reintegro.pagado:
             
             ingreso -= reintegro.monto
             self.cuentas[reintegro.cuenta] += reintegro.monto
@@ -278,24 +278,10 @@ class Generador(object):
         """Calcula las cantidades a pagar por los afiliados"""
         
         afiliados = database.get_affiliates_by_payment("Escalafon", True)
-        obligation = database.get_obligation(self.year, self.month)
-        
-        cantidad = 0
         
         for afiliado in afiliados:
         
-            cantidad = 0
-            
-            for e in afiliado.extras:
-                cantidad += e.amount
-            
-            for prestamo in afiliado.loans:
-                cantidad += prestamo.get_payment()
-                # Asegurarse que solo un prestamo sea cobrado
-                break
-            
-            cantidad += obligation
-            line = ReportLine(afiliado, cantidad)
+            line = ReportLine(afiliado, afiliado.get_monthly())
             self.lines.append(line)
     
     def escribir_archivo(self):

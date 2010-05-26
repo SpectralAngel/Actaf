@@ -157,7 +157,9 @@ class MainWindow(object):
 		if respuesta == gtk.RESPONSE_OK:
 			print "Procesando"
 			dia = fecha.get_date()
-			self.create_report_window(process.inprema(archivo.get_filename(),date(dia[0], dia[1] + 1, dia[2])))
+			self.create_report_window(process.inprema(archivo.get_filename(),
+													  date(dia[0], dia[1] + 1,
+													  dia[2])), True)
 	
 	def on_generar_inprema_clicked(self, button):
 		
@@ -165,7 +167,7 @@ class MainWindow(object):
 	
 	###################
 	# Utility Functions
-	def create_report_window(self, report):
+	def create_report_window(self, report, other=False):
 		
 		reporte = self.builder.get_object("reporte")
 		
@@ -185,7 +187,11 @@ class MainWindow(object):
 		cuentas = gtk.ListStore(str, int, str)
 		vistaCuentas.set_model(cuentas)
 		
-		for ra in report.reportAccounts:
-			cuentas.append([ra.name, ra.quantity, locale.currency(ra.amount, True, True)])
+		if not other:
+			for ra in report.reportAccounts:
+				cuentas.append([ra.name, ra.quantity, locale.currency(ra.amount, True, True)])
+		else:
+			for ra in report.otherAccounts:
+				cuentas.append([ra.account.name, ra.quantity, locale.currency(ra.amount, True, True)])
 		
 		reporte.show_all()

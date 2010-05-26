@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf8 -*-
 #
 # model.py
 # Copyright 2009, 2010 by Carlos Flores <cafg10@gmail.com>
@@ -928,7 +929,7 @@ class OtherAccount(SQLObject):
     quantity = IntCol(default=0)
     amount = CurrencyCol(default=0)
     otherReport = ForeignKey("OtherReport")
-
+    
     def add(self, amount):
         self.amount += amount
         self.quantity += 1

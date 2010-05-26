@@ -33,17 +33,15 @@ def extraer_cambios():
 		inprema = None
 		try:
 			inprema = int(a.escalafon)
-		except Exception, e:
+		except Exception:
 			pass
 		
 		afiliados[inprema] = a
 	
-	obligacion = database.get_obligation(12, 2009, True)
-	obligacion = 228
 	cambios = dict()
 	for afiliado in afiliados:
 		a = afiliados[afiliado]
-		cambios[afiliado] = core.Extraccion(a, a.get_monthly() + obligacion)
+		cambios[afiliado] = core.Extraccion(a, a.get_monthly())
 		if not a.active:
 			cambios[afiliado].cantidad = 0
 			cambios[afiliado].marca = 'C'
@@ -56,7 +54,7 @@ def extraer_cambios():
 				del cambios[int(income.afiliado.escalafon)]
 			elif income.cantidad != cambios[int(income.afiliado.escalafon)].cantidad:
 				cambios[int(income.afiliado.escalafon)].marca = 'R'
-		except Exception, e:
+		except Exception:
 			print "%s %s" % (income.afiliado.escalafon, type(income.afiliado.escalafon))
 	
 	del cambios[None]
