@@ -38,7 +38,7 @@ class Affiliate(SQLObject):
     lastName = UnicodeCol()
     cardID = StringCol(length=15, default="")
     gender = StringCol(length=1, varchar=False)
-    birthday = DateCol(default=datetime.now)
+    birthday = DateCol(default=date.today)
     birthPlace = UnicodeCol()
     
     address = StringCol(default="")
@@ -49,7 +49,7 @@ class Affiliate(SQLObject):
     school2 = StringCol(length=255, default="")
     town = StringCol(length=50, default="")
     
-    joined = DateCol(default=datetime.now)
+    joined = DateCol(default=date.today)
     active = BoolCol(default=True, notNone=True)
     
     # Reason for deactivation
@@ -57,7 +57,7 @@ class Affiliate(SQLObject):
     
     escalafon = StringCol(length=11, varchar=False)
     inprema = StringCol(length=11)
-    jubilated = DateCol(default=datetime.now)
+    jubilated = DateCol(default=date.today)
     
     payment = StringCol(default="Ventanilla", length=20)
     
@@ -83,7 +83,8 @@ class Affiliate(SQLObject):
         for loan in self.loans:
         	
         	loans += loan.get_payment()
-        	break
+        	# desabilitado por politicas
+        	# break
         
         return extras + loans
     
@@ -509,10 +510,10 @@ class Loan(SQLObject):
     payment = CurrencyCol(default=0, notNone=True)
     interest = DecimalCol(default=20, notNone=True, size=4, precision=2)
     months = IntCol()
-    last = DateCol(default=datetime.now)
+    last = DateCol(default=date.today)
     number = IntCol(default=0)
     
-    startDate = DateCol(notNone=True, default=datetime.now)
+    startDate = DateCol(notNone=True, default=date.today)
     aproved = BoolCol(default=False)
     
     pays = MultipleJoin("Pay", orderBy="day")
@@ -719,7 +720,7 @@ class Loan(SQLObject):
 class Pay(SQLObject):
     
     loan = ForeignKey("Loan")
-    day = DateCol(default=datetime.now)
+    day = DateCol(default=date.today)
     capital = CurrencyCol(default=0, notNone=True)
     interest = CurrencyCol(default=0, notNone=True)
     amount = CurrencyCol(default=0, notNone=True)
@@ -967,8 +968,8 @@ class PayedLoan(SQLObject):
     payment = CurrencyCol(default=0, notNone=True)
     interest = DecimalCol(default=20, notNone=True, size=4, precision=2)
     months = IntCol()
-    last = DateCol(default=datetime.now)
-    startDate = DateCol(notNone=True, default=datetime.now)
+    last = DateCol(default=date.today)
+    startDate = DateCol(notNone=True, default=date.today)
     pays = MultipleJoin("OldPay")
     deductions = MultipleJoin("PayedDeduction")
     
@@ -1009,7 +1010,7 @@ class PayedLoan(SQLObject):
 class OldPay(SQLObject):
     
     payedLoan = ForeignKey("PayedLoan")
-    day = DateCol(default=datetime.now)
+    day = DateCol(default=date.today)
     capital = CurrencyCol(default=0, notNone=True)
     interest = CurrencyCol(default=0, notNone=True)
     amount = CurrencyCol(default=0, notNone=True)
@@ -1060,10 +1061,10 @@ class RefinancedLoan(SQLObject):
     payment = CurrencyCol(default=0, notNone=True)
     interest = DecimalCol(default=20, notNone=True, size=4, precision=2)
     months = IntCol()
-    last = DateCol(default=datetime.now)
+    last = DateCol(default=date.today)
     number = IntCol(default=0)
     
-    startDate = DateCol(notNone=True, default=datetime.now)
+    startDate = DateCol(notNone=True, default=date.today)
     aproved = BoolCol(default=False)
     
     pays = MultipleJoin("RefinancedPay", orderBy="day")
@@ -1207,7 +1208,7 @@ class RefinancedDeduction(SQLObject):
 class RefinancedPay(SQLObject):
     
     refinancedLoan = ForeignKey("RefinancedLoan")
-    day = DateCol(default=datetime.now)
+    day = DateCol(default=date.today)
     capital = CurrencyCol(default=0, notNone=True)
     interest = CurrencyCol(default=0, notNone=True)
     amount = CurrencyCol(default=0, notNone=True)
@@ -1233,8 +1234,8 @@ class Deduced(SQLObject):
     amount = CurrencyCol(default=0)
     account = ForeignKey("Account")
     detail = UnicodeCol(default="")
-    month = IntCol(default=datetime.today().month)
-    year = IntCol(default=datetime.today().year)
+    month = IntCol(default=date.today().month)
+    year = IntCol(default=date.today().year)
 
 class OtherReport(SQLObject):
     
@@ -1281,4 +1282,4 @@ class Observacion(SQLObject):
     
     affiliate = ForeignKey("Affiliate")
     texto = UnicodeCol()
-    fecha = DateCol(default=datetime.now)
+    fecha = DateCol(default=date.today)
