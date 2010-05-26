@@ -25,7 +25,6 @@ import pygtk
 pygtk.require("2.0")
 import gtk
 
-from decimal import Decimal
 from datetime import date
 import locale
 
@@ -102,11 +101,8 @@ class MainWindow(object):
 		if respuesta == gtk.RESPONSE_OK:
 			
 			afiliados = dict()
-			for a in database.get_affiliates_by_payment("Escalafon"):
-				
-				afiliados[a.cardID] = a
 			
-			parser = core.Parser(archivo.get_filename(), afiliados)
+			parser = core.Analizador(archivo.get_filename(), afiliados)
 			
 			report = process.start(parser, afiliados, fecha.get_date())
 			

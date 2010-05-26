@@ -34,7 +34,7 @@ class Ingreso(object):
         
         self.afiliado, self.cantidad = (afiliado, cantidad)
 
-class Parser(object):
+class Analizador(object):
     
     """Extrae los datos de la planilla de Escalafon y los convierte en
     una representación interna de los cobros"""
@@ -56,7 +56,8 @@ class Parser(object):
             amount = Decimal(str(line[94:111])) / hundred
             card = str(line[6:10] + '-' + line[10:14] + '-' + line[14:19])
             try:
-                self.parsed.append(Ingreso(self.affiliates[card], amount))
+                afiliado = database.Affiliate.selectBy(cardID=card).getOne()
+                self.parsed.append(Ingreso(afiliado, amount))
             except:
                 print("Error de parseo no se encontro la identidad %s" % card)
         
@@ -117,12 +118,13 @@ class Actualizador(object):
         
         """Actualiza el estado de cuenta de acuerdo a un :class:`Ingreso`"""
         
-        print ingreso.afiliado.id, ingreso.afiliado.escalafon, ingreso.cantidad
-        
         self.cuota(ingreso)
         
         for loan in ingreso.afiliado.loans:
             self.prestamo(loan, ingreso)
+            
+        for reintegro in ingreso.afiliado.reintegros:
+            self.reintegros(reintegro, ingreso)
         
         self.extra(ingreso)
         if ingreso.cantidad > 0:
@@ -141,6 +143,16 @@ class Actualizador(object):
             afiliado.pay_cuota(self.day.year, self.day.month)
             ingreso.cantidad -= self.obligacion
             database.create_deduction(ingreso.afiliado, self.obligacion, self.registro['cuota'])
+    
+    def reintegros(self, reintegro, ingreso):
+        
+        """Acredita los reintegros en el estado de cuenta"""
+        
+        if ingreso >= reintegro.monto:
+            
+            ingreso -= reintegro.monto
+            self.cuentas[reintegro.cuenta] += reintegro.monto
+            reintegro.deduccion(self.day)
     
     def extra(self, ingreso):
         

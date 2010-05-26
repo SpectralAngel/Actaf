@@ -18,9 +18,12 @@
 # along with Actaf.  If not, see <http://www.gnu.org/licenses/>.
 
 import copy
-from datetime import date
+from sqlobject import (SQLObject, UnicodeCol, StringCol, DateCol, CurrencyCol,
+                       MultipleJoin, ForeignKey, IntCol, DecimalCol, BoolCol,
+                       DatabaseIndex, SQLObjectNotFound, connectionForURI, sqlhub)
 from decimal import Decimal
-from sqlobject import *
+from datetime import date
+import math
 
 scheme = 'mysql://asura:$a1ntcro$$@172.16.10.68/afiliados'
 connection = connectionForURI(scheme)
@@ -30,36 +33,40 @@ dot01 = Decimal(".01")
 Zero = Decimal(0)
 Zeros = Decimal(0)
 
+################################################################################
+# Clases Especificas del Negocio
+################################################################################
+
 class Affiliate(SQLObject):
 
     """A person that is affiliated to a Company"""
 
-    firstName = UnicodeCol()
-    lastName = UnicodeCol()
-    cardID = StringCol(length=15, default="")
-    gender = StringCol(length=1, varchar=False)
+    firstName = UnicodeCol(length="100")
+    lastName = UnicodeCol(length="100")
+    cardID = UnicodeCol(length=15, default="")
+    gender = UnicodeCol(length=1, varchar=False)
     birthday = DateCol(default=date.today)
     birthPlace = UnicodeCol()
     
     address = StringCol(default="")
     phone = UnicodeCol(default="")
     
-    state = StringCol(length=50, default="")
-    school = StringCol(length=255, default="")
-    school2 = StringCol(length=255, default="")
-    town = StringCol(length=50, default="")
+    state = UnicodeCol(length=50, default="")
+    school = UnicodeCol(length=255, default="")
+    school2 = UnicodeCol(length=255, default="")
+    town = UnicodeCol(length=50, default="")
     
     joined = DateCol(default=date.today)
     active = BoolCol(default=True, notNone=True)
     
     # Reason for deactivation
-    reason = StringCol(default="Renuncia", length=50)
+    reason = UnicodeCol(default="Renuncia", length=50)
     
-    escalafon = StringCol(length=11, varchar=False)
-    inprema = StringCol(length=11)
+    escalafon = UnicodeCol(length=11)
+    inprema = UnicodeCol(length=11)
     jubilated = DateCol(default=date.today)
     
-    payment = StringCol(default="Ventanilla", length=20)
+    payment = UnicodeCol(default="Ventanilla", length=20)
     
     # History of cuota payment
     cuotaTables = MultipleJoin("CuotaTable", orderBy='year')
@@ -67,26 +74,32 @@ class Affiliate(SQLObject):
     loans = MultipleJoin("Loan", orderBy='startDate')
     # Payed loans
     payedLoans = MultipleJoin("PayedLoan", orderBy='startDate')
-    # Refinanced Loans
-    refinancedLoans = MultipleJoin("RefinancedLoan", orderBy='startDate')
     extras = MultipleJoin("Extra")
     flyers = MultipleJoin("Flyer")
-    deduced = MultipleJoin("Deduced")
+    deduced = MultipleJoin("Deduced", orderBy=['year', 'month'])
     delayed = MultipleJoin("Delayed")
     observaciones = MultipleJoin('Observacion')
+    solicitudes = MultipleJoin('Solicitud')
+    reintegros =MultipleJoin('Reintegro')
     
     def get_monthly(self):
         
         extras = sum(e.amount for e in self.extras)
-        loans = Zero
+        loans = sum(l.get_payment() for l in self.loans)
+        reintegros = sum(r.monto for r in self.reintegros if not r.pagado)
         
-        for loan in self.loans:
-        	
-        	loans += loan.get_payment()
-        	# desabilitado por politicas
-        	# break
+        return extras + loans + reintegros + self.get_cuota()
+    
+    def get_cuota(self):
         
-        return extras + loans
+        hoy = date.today()
+        obligations = Obligation.selectBy(month=hoy.month, year=hoy.year)
+        
+        obligation = Decimal(0)
+        obligation += sum(o.amount for o in obligations if self.payment != 'INPREMA')
+        obligation += sum(o.inprema for o in obligations if self.payment == 'INPREMA')
+        
+        return obligation
     
     def populate(self, year):
         kw = dict()
@@ -114,45 +127,33 @@ class Affiliate(SQLObject):
         
         return None
     
-    def retrasada(self):
-        
-        tables = (t for t in self.cuotaTables if not t.all())
-        for table in tables:
-            old = table.old()
-            if old != Zero:
-                return old
-        return Zero
-    
-    def pay_retrasada(self):
-        tables = (t for t in self.cuotaTables if not t.all())
-        for table in tables:
-            value = table.pay_old()
-            if value == True:
-                return
-    
     def pay_cuota(self, year, month):
-        tables = [t for t in self.cuotaTables if t.year == year]
+        
         table = None
-        if len(tables) == 0:
-            kw = self.populate(year)
+        
+        try:
+            table = CuotaTable.selectBy(afiliado=self,year=year).getOne()
+        except SQLObjectNotFound:
+            kw = dict()
             kw['affiliate'] = self
             kw['year'] = year
             table = CuotaTable(**kw)
-        else:
-            table = tables[0]
+        
         table.pay_month(month)
     
     def remove_cuota(self, year, month):
-        tables = [t for t in self.cuotaTables if t.year == year]
+        
         table = None
-        if len(tables) == 0:
-            kw = self.populate(year)
+        
+        try:
+            table = CuotaTable.selectBy(afiliado=self,year=year).getOne()
+        except SQLObjectNotFound:
+            kw = dict()
             kw['affiliate'] = self
             kw['year'] = year
             table = CuotaTable(**kw)
-        else:
-            table = tables[0]
-            table.remove_month(month)
+        
+        table.remove_month(month)
     
     def aport(self):
     
@@ -184,6 +185,7 @@ class Affiliate(SQLObject):
         return True
     
     def remove(self):
+        
         [table.remove() for table in self.cuotaTables]
         for loan in self.loans:
             loan.remove()
@@ -199,13 +201,11 @@ class Affiliate(SQLObject):
     
     def get_month(self, year, month):
         
-        query = 'cuota_table.affiliate_id = %s and cuota_table.year = %s' % (self.id, year)
-        tables = CuotaTable.select(query)
-        if tables.count() == 0:
-            return False
-        else:
-            table = tables[0]
+        try:
+            table = CuotaTable.selectBy(affiliate=self,year=year).getOne()
             return getattr(table, "month%s" % month)
+        except:
+            return False
     
     def link(self, year, month):
         
@@ -214,29 +214,6 @@ class Affiliate(SQLObject):
     def get_age(self):
         
         return (date.today() - self.birthday).days / 365
-
-class Delayed(SQLObject):
-    
-    affiliate = ForeignKey("Affiliate")
-    
-    cuota = ForeignKey("CuotaTable")
-    
-    month = IntCol()
-    
-    def amount(self):
-        
-        os = Obligation.selectBy(year=self.cuota.year, month=self.month)
-        return sum(o.amount for o in os)
-    
-    def act(self):
-        
-        kw = dict()
-        kw['affiliate'] = self.affiliate
-        kw['reason'] = "Cuota Retrasada %s de %s" % (self.month, self.cuota.year)
-        # TODO: Add account number
-        kw['account'] = Account.get()
-        
-        Deduced(**kw)
 
 class CuentaRetrasada(SQLObject):
     
@@ -505,13 +482,14 @@ class Loan(SQLObject):
     affiliate = ForeignKey("Affiliate")
     
     capital = CurrencyCol(default=0, notNone=True)
-    letters = StringCol()
+    letters = UnicodeCol()
     debt = CurrencyCol(default=0, notNone=True)
     payment = CurrencyCol(default=0, notNone=True)
     interest = DecimalCol(default=20, notNone=True, size=4, precision=2)
     months = IntCol()
     last = DateCol(default=date.today)
     number = IntCol(default=0)
+    offset = IntCol(default=0)
     
     startDate = DateCol(notNone=True, default=date.today)
     aproved = BoolCol(default=False)
@@ -535,33 +513,6 @@ class Loan(SQLObject):
     def start(self):
     
         self.debt = self.capital
-    
-    def refinance(self):
-        
-        kw = dict()
-        kw['id'] = self.id
-        kw['affiliate'] = self.affiliate
-        kw['capital'] = self.capital
-        kw['letters'] = self.letters
-        kw['debt'] = self.debt
-        kw['payment'] = self.payment
-        kw['interest'] = self.interest
-        kw['months'] = self.months
-        kw['last'] = self.last
-        kw['number'] = self.number
-        kw['startDate'] = self.startDate
-        
-        refinancedLoan = RefinancedLoan(**kw)
-        
-        for pay in self.pays:
-            pay.refinance(refinancedLoan)
-        
-        for deduction in self.deductions:
-            deduction.refinance(refinancedLoan)
-        
-        refinancedLoan.debt = refinancedLoan.get_payment()
-        
-        self.destroySelf()
     
     def pay(self, amount, receipt, day=date.today()):
         
@@ -658,6 +609,10 @@ class Loan(SQLObject):
         
         return self.capital - sum(d.amount for d in self.deductions)
     
+    def total_deductions(self):
+        
+        return sum(d.amount for d in self.deductions)
+    
     def remove(self):
         
         kw = dict()
@@ -689,13 +644,13 @@ class Loan(SQLObject):
             4:'Abril', 5:'Mayo', 6:'Junio', 
             7:'Julio', 8:'Agosto', 9:'Septiembre', 
             10:'Octubre', 11:'Noviembre', 12:'Diciembre'
-                }
-        start = self.startDate.month
+        }
+        start = self.startDate.month + self.offset
         if self.startDate.day == 24 and self.startDate.month == 8:
             start += 1
         year = self.startDate.year
         for n in range(1, self.months - self.number + 2):
-            kw = {}
+            kw = dict()
             kw['number'] = "%s/%s" % (n + self.number, self.months)
             kw['month'] = self.number + n + start
             kw['year'] = year
@@ -704,7 +659,7 @@ class Loan(SQLObject):
                 kw['year'] += 1
             kw['month'] = "%s %s" % (months[kw['month']], kw['year'])
             kw['interest'] = Decimal(debt * self.interest / 1200).quantize(dot01)
-            if debt < self.payment:
+            if debt <= self.payment:
                 kw['amount'] = 0
                 kw['capital'] = debt
                 kw['payment'] = kw['interest'] + kw['capital']
@@ -724,22 +679,7 @@ class Pay(SQLObject):
     capital = CurrencyCol(default=0, notNone=True)
     interest = CurrencyCol(default=0, notNone=True)
     amount = CurrencyCol(default=0, notNone=True)
-    receipt = StringCol()
-    month = StringCol(default="")
-    
-    def refinance(self, refinancedLoan):
-        
-        kw = dict()
-        kw['refinancedLoan'] = refinancedLoan
-        kw['day'] = self.day
-        kw['capital'] = self.capital
-        kw['interest'] = self.interest
-        kw['amount'] = self.amount
-        kw['receipt'] = self.receipt
-        kw['month'] = self.month
-        
-        RefinancedPay(**kw)
-        self.destroySelf()
+    receipt = UnicodeCol(length=50)
     
     def remove(self, payedLoan):
         
@@ -766,12 +706,10 @@ class Account(SQLObject):
     
     name = StringCol()
     code = IntCol(alternateID=True)
+    loan = BoolCol(default=False)
     
-    company = StringCol()
     extras = MultipleJoin("Extra")
-    
-    details = MultipleJoin("AccountDetail")
-    intermediates = MultipleJoin("Intermediate")
+    retrasadas = MultipleJoin("CuentaRetrasada")
 
 class Extra(SQLObject):
     
@@ -786,9 +724,9 @@ class Extra(SQLObject):
     anio = IntCol(default=None)
     
     def act(self, decrementar=True):
+        
         if decrementar:
             self.months -= 1
-        
         self.to_deduced()
         if self.months == 0:
             self.destroySelf()
@@ -825,37 +763,13 @@ class Extra(SQLObject):
         self.to_other()
         self.act()
 
-class Flyer(SQLObject):
-    
-    affiliate = ForeignKey("Affiliate")
-    amount = CurrencyCol(default=0)
-    
-    def __str__(self):
-        total = self.amount * Decimal(100)
-        zeros = '%(#)018d' % {"#":total}
-        if self.affiliate.cardID == None:
-            return ""
-        return self.affiliate.cardID.replace('-', '') + '0011' + zeros
-
 class Deduction(SQLObject):
     
     loan = ForeignKey("Loan")
-    name = StringCol()
+    name = UnicodeCol()
     amount = CurrencyCol()
     account = ForeignKey("Account")
-    description = StringCol()
-    
-    def refinance(self, refinancedLoan):
-        
-        kw = dict()
-        kw['refinancedLoan'] = refinancedLoan
-        kw['name'] = self.name
-        kw['amount'] = self.amount
-        kw['account'] = self.account
-        kw['description'] = self.description
-        
-        RefinancedDeduction(**kw)
-        self.destroySelf()
+    description = UnicodeCol()
     
     def remove(self, payedLoan):
         
@@ -867,98 +781,6 @@ class Deduction(SQLObject):
         kw['description'] = self.description
         PayedDeduction(**kw)
         self.destroySelf()
-
-class Company(SQLObject):
-    name = UnicodeCol()
-    description = UnicodeCol(default="")
-    rtn = StringCol(length=20, alternateID=True)
-    obligations = MultipleJoin("Obligation")
-    
-    @classmethod
-    def createTable(cls, *args, **kw):
-        super(Company, cls).createTable(*args, **kw)
-        count = Company.select().count()
-        if count == 0:
-            Company(name="Junta Directiva", rtn="")
-            Company(name="Fondo del AutoSeguro", rtn=" ")
-    
-    def loan(self, amount):
-        self.loans += amount
-    
-    def reset(self):
-        self.accumulated = Decimal(0)
-    
-    def accumulate(self, amount):
-        self.accumulated += amount
-
-class Obligation(SQLObject):
-    
-    """The description of the Cuota payment"""
-    
-    name = UnicodeCol()
-    amount = CurrencyCol(default=0, notNone=True)
-    inprema = CurrencyCol(default=0, notNone=True)
-    month = IntCol()
-    year = IntCol()
-    company = ForeignKey("Company")
-    account = ForeignKey("Account")
-    filiales = CurrencyCol(default=4, notNone=True)
-    
-    def accumulate(self):
-        self.account.increase(self.amount)
-
-class AccountDetail(SQLObject):
-    
-    name = StringCol()
-    amount = CurrencyCol(default=0)
-    account = ForeignKey("Account")
-    company = StringCol()
-
-class ReportAccount(SQLObject):
-    
-    name = StringCol()
-    code = IntCol(default=0)
-    quantity = IntCol()
-    amount = CurrencyCol(default=0)
-    postReport = ForeignKey("PostReport")
-
-    def add(self, amount):
-        self.amount += amount
-        self.quantity += 1
-
-class Intermediate(SQLObject):
-    
-    account = ForeignKey("Account")
-    amount = CurrencyCol(default=0)
-
-class PostReport(SQLObject):
-
-    year = IntCol()
-    month = IntCol()
-    reportAccounts = MultipleJoin("ReportAccount", orderBy="name")
-
-    def total(self):
-        return sum(r.amount for r in self.reportAccounts)
-
-class PreReport(SQLObject):
-
-    year = IntCol()
-    month = IntCol()
-    preAccounts = MultipleJoin("PreAccount")
-
-    def total(self):
-        return sum(p.amount for p in self.preAccounts)
-
-class preAccount(SQLObject):
-    name = StringCol()
-    code = IntCol(default=0)
-    quantity = IntCol()
-    amount = CurrencyCol(default=0)
-    postReport = ForeignKey("PreReport")
-
-    def add(self, amount):
-        self.amount += amount
-        self.quantity += 1
 
 class PayedLoan(SQLObject):
     
@@ -1014,8 +836,7 @@ class OldPay(SQLObject):
     capital = CurrencyCol(default=0, notNone=True)
     interest = CurrencyCol(default=0, notNone=True)
     amount = CurrencyCol(default=0, notNone=True)
-    receipt = StringCol()
-    month = StringCol()
+    receipt = UnicodeCol(length=50)
     
     def to_pay(self, loan):
         
@@ -1049,184 +870,38 @@ class PayedDeduction(SQLObject):
         Deduction(**kw)
         self.destroySelf()
 
-class RefinancedLoan(SQLObject):
+class Obligation(SQLObject):
     
-    """Data concerning to Loans that have been covered with another loan"""
+    """The description of the Cuota payment"""
     
-    affiliate = ForeignKey("Affiliate")
-    
-    capital = CurrencyCol(default=0, notNone=True)
-    letters = StringCol()
-    debt = CurrencyCol(default=0, notNone=True)
-    payment = CurrencyCol(default=0, notNone=True)
-    interest = DecimalCol(default=20, notNone=True, size=4, precision=2)
-    months = IntCol()
-    last = DateCol(default=date.today)
-    number = IntCol(default=0)
-    
-    startDate = DateCol(notNone=True, default=date.today)
-    aproved = BoolCol(default=False)
-    
-    pays = MultipleJoin("RefinancedPay", orderBy="day")
-    deductions = MultipleJoin("RefinancedDeduction")
-    
-    def get_payment(self):
-    
-        if self.debt < self.payment:
-            return self.debt
-        return self.payment
-    
-    def pay(self, amount, receipt, day=date.today()):
-        
-        """Charges a normal payment for the loan
-        
-        Calculates the composite interest and acredits the made payment
-        """
-        
-        kw = dict()
-        kw['amount'] = Decimal(amount).quantize(dot01)
-        kw['day'] = day
-        kw['receipt'] = receipt
-        kw['refinancedLoan'] = self
-        
-        # When the amount to pay is bigger or equal the debt, it is considered the last payment, so interests are not
-        # calculated
-        if(self.debt <= amount):
-            
-            self.last = day
-            # Register the payment in the database
-            Pay(**kw)
-            # Remove the loan and convert it to PayedLoan
-            self.remove()
-            return True
-        
-        # Otherwise calculate interest for the loan's payment
-        kw['interest'] = (self.debt * self.interest / 1200).quantize(dot01)
-        # Increase the loans debt by the interest
-        self.debt += kw['interest']
-        # Decrease debt by the payment amount
-        self.debt -= kw['amount']
-        # Calculate how much money was used to pay the capital
-        kw['capital'] = kw['amount'] - kw['interest']
-        # Change the last payment date
-        self.last = day
-        # Register the payment in the database
-        Pay(**kw)
-        # Increase the number of payments by one
-        self.number += 1
-        
-        if self.debt == 0:
-            self.remove()
-            return True
-        
-        return False
-    
-    def payfree(self, amount, receipt, day=date.today()):
-        
-        """Creates a new payment for the loan without chargin interests"""
-        
-        kw = dict()
-        kw['amount'] = Decimal(amount).quantize(dot01)
-        kw['day'] = day
-        kw['receipt'] = receipt
-        kw['refinancedLoan'] = self
-        
-        # When the amount to pay is bigger or equal the debt, it is considered the last payment, so interests are not
-        # calculated
-        if(self.debt <= amount):
-            
-            self.last = kw['day']
-            # Register the payment in the database
-            RefinancedPay(**kw)
-            # Remove the loan and convert it to PayedLoan
-            self.remove()
-            return True
-        
-        # Otherwise calculate interest for the loan's payment
-        kw['interest'] = 0
-        # Increase the loans debt by the interest
-        self.debt += kw['interest']
-        # Decrease debt by the payment amount
-        self.debt -= kw['amount']
-        # Calculate how much money was used to pay the capital
-        kw['capital'] = kw['amount'] - kw['interest']
-        # Change the last payment date
-        self.last = day
-        # Register the payment in the database
-        RefinancedPay(**kw)
-        # Increase the number of payments by one
-        self.number += 1
-        
-        if self.debt == 0:
-            self.remove()
-            return True
-        
-        return False
-    
-    def remove(self):
-        
-        kw = dict()
-        kw['id'] = self.id
-        kw['affiliate'] = self.affiliate
-        kw['capital'] = self.capital
-        kw['letters'] = self.letters
-        kw['interest'] = self.interest
-        kw['months'] = self.months
-        kw['last'] = self.last
-        kw['startDate'] = self.startDate
-        kw['payment'] = self.payment
-        payed = PayedLoan(**kw)
-        
-        for pay in self.pays:
-            pay.remove(payed)
-        
-        for deduction in self.deductions:
-            deduction.remove(payed)
-        
-        self.destroySelf()
-        return payed
-
-class RefinancedDeduction(SQLObject):
-    
-    refinancedLoan = ForeignKey("RefinancedLoan")
-    name = StringCol()
-    amount = CurrencyCol()
-    account = ForeignKey("Account")
-    description = StringCol()
-    
-    def remove(self, payedLoan):
-        
-        kw = dict()
-        kw['payedLoan'] = payedLoan
-        kw['name'] = self.name
-        kw['amount'] = self.amount
-        kw['account'] = self.account
-        kw['description'] = self.description
-        PayedDeduction(**kw)
-        self.destroySelf()
-
-class RefinancedPay(SQLObject):
-    
-    refinancedLoan = ForeignKey("RefinancedLoan")
-    day = DateCol(default=date.today)
-    capital = CurrencyCol(default=0, notNone=True)
-    interest = CurrencyCol(default=0, notNone=True)
+    name = UnicodeCol(length=100)
     amount = CurrencyCol(default=0, notNone=True)
-    receipt = StringCol()
-    month = StringCol(default="")
+    inprema = CurrencyCol(default=0, notNone=True)
+    month = IntCol()
+    year = IntCol()
+    account = ForeignKey("Account")
+    filiales = CurrencyCol(default=4, notNone=True)
+
+class ReportAccount(SQLObject):
     
-    def remove(self, payedLoan):
-        
-        kw = dict()
-        kw['payedLoan'] = payedLoan
-        kw['day'] = self.day
-        kw['capital'] = self.capital
-        kw['interest'] = self.interest
-        kw['amount'] = self.amount
-        kw['receipt'] = self.receipt
-        kw['month'] = self.month
-        self.destroySelf()
-        OldPay(**kw)
+    name = name = UnicodeCol(length=100)
+    code = IntCol(default=0)
+    quantity = IntCol()
+    amount = CurrencyCol(default=0)
+    postReport = ForeignKey("PostReport")
+
+    def add(self, amount):
+        self.amount += amount
+        self.quantity += 1
+
+class PostReport(SQLObject):
+
+    year = IntCol()
+    month = IntCol()
+    reportAccounts = MultipleJoin("ReportAccount", orderBy="name")
+
+    def total(self):
+        return sum(r.amount for r in self.reportAccounts)
 
 class Deduced(SQLObject):
     
@@ -1241,7 +916,7 @@ class OtherReport(SQLObject):
     
     year = IntCol()
     month = IntCol()
-    payment = StringCol(length=15)
+    payment = UnicodeCol(length=15)
     otherAccounts = MultipleJoin("OtherAccount")
 
     def total(self):
@@ -1283,3 +958,94 @@ class Observacion(SQLObject):
     affiliate = ForeignKey("Affiliate")
     texto = UnicodeCol()
     fecha = DateCol(default=date.today)
+
+class Solicitud(SQLObject):
+    
+    affiliate = ForeignKey("Affiliate")
+    ingreso = DateCol(default=date.today)
+    entrega = DateCol(default=date.today)
+    monto = CurrencyCol(default=0, notNone=True)
+    periodo = IntCol(default=12)
+    
+    def prestamo(self, user):
+        
+        tipo = Decimal(20) / 1200
+        numerado = str(1 - math.pow(tipo + 1, -self.periodo))
+        cuota = self.monto * Decimal(tipo / Decimal(numerado))
+        
+        kw = dict()
+        kw['aproval'] = user
+        kw['affiliate'] = self.affiliate
+        kw['capital'] = self.monto
+        kw['interest'] = 20
+        kw['payment'] = cuota
+        kw['months'] = self.periodo
+        kw['last'] = self.entrega
+        kw['startDate'] = self.entrega
+        # kw['letters'] = wording.parse(self.monto).capitalize()
+        kw['number'] = 0
+        prestamo = Loan(**kw)
+        prestamo.start()
+        
+        return prestamo
+
+class FormaPago(SQLObject):
+    
+    """Maneras en que se puede efectuar un pago"""
+    
+    nombre = UnicodeCol(length=15)
+    """Nombre de la forma de pago"""
+
+class Reintegro(SQLObject):
+    
+    """Cobros que debieron regresarse al empleador del afiliado y que deben ser
+    cobrados de nuevo"""
+    
+    affiliate = ForeignKey('Affiliate')
+    """:class:`Affiliate` al que pertenece el cobro"""
+    emision = DateCol(default=date.today)
+    """Fecha en que se emitio el pago del empleador"""
+    monto = CurrencyCol()
+    """Monto que debe cobrarse"""
+    cheque = UnicodeCol(length=10)
+    """Cheque bancario utilizado por el empleador para pagar"""
+    planilla = UnicodeCol(length=10)
+    """Codigo de la planilla enviado por el empleador"""
+    motivo = UnicodeCol(length=100)
+    """Razón por la cual se debe efectuar el cobro de nuevo"""
+    formaPago = ForeignKey("FormaPago", default=FormaPago.get(1))
+    """Modo en que se efectuó el cobro"""
+    pagado = BoolCol(default=False)
+    """Identifica si el reintegro ya ha sido pagado"""
+    cancelacion = DateCol(default=date.today)
+    """Indica el día en que se efectuó el cobro"""
+    cuenta = ForeignKey('Account')
+    """Cuenta a la que pertenece el reintegro"""
+    
+    def cancelar(self, dia=date.today()):
+        
+        """Marca el :class:`Reintegro` como pagado"""
+        
+        self.pagado = True
+    
+    def deduccion(self, dia=date.today()):
+        
+        """Efectua el pago del :class:`Reintegro` mediante una planilla"""
+        
+        self.cancelar(dia)
+        self.formaPago = FormaPago.get(1)
+        
+        kw = dict()
+        kw['amount'] = self.monto
+        kw['affiliate'] = self.afiliado
+        kw['account'] = self.cuenta
+        
+        kw['detail'] = "Reintegro %s por %s" % (self.emision.strftime('%d/%m/%Y'), self.motivo)
+        
+        Deduced(**kw)
+    
+    def revertir(self):
+        
+        """Revierte el pago del :class:`Reintegro`"""
+        
+        self.pagado = False
