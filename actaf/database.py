@@ -93,7 +93,7 @@ def get_income_report(year, month):
 
 def efectuar_pago(loan, amount, day, method='Planilla'):
     
-    loan.pay(amount, method, day)
+    loan.pagar(amount, method, day)
 
 def create_deduction(affiliate, amount, account):
     
