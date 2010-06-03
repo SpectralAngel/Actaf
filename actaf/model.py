@@ -40,7 +40,30 @@ Zeros = Decimal(0)
 
 class Affiliate(SQLObject):
 
-    """A person that is affiliated to a Company"""
+    """Representa un miembro de la institución, cada afiliado puede tener
+    Prestamos, tiene Cuota mensual que es Deducido por planilla o pagado en
+    ventanilla en algunos casos.
+    
+    Ademas, puede deducirsele por diferentes métodos, como ser:
+        
+        * Escalafon
+        * UPN
+        * INPREMA
+        * Ventanilla
+        * Ministerio de Educación.
+    
+    El afiliado puede asistir a diferentes eventos de la institucion como ser
+    asambleas, elecciones u otras actividades extraordinarias que se programen.
+    
+    Es necesario para efectuar los diversos cobros:
+        
+        1. Escalafon: Número de Identidad.
+        2. INPREMA: Número de cobro.
+        3. UPN: Número de empleado.
+    
+    Algunos datos son requeridos para obtener información estadistica acerca de
+    la institución.
+    """
 
     firstName = UnicodeCol(length="100")
     lastName = UnicodeCol(length="100")
@@ -49,7 +72,7 @@ class Affiliate(SQLObject):
     birthday = DateCol(default=date.today)
     birthPlace = UnicodeCol()
     
-    address = StringCol(default="")
+    address = UnicodeCol(default="")
     phone = UnicodeCol(default="")
     
     state = UnicodeCol(length=50, default="")
@@ -69,19 +92,26 @@ class Affiliate(SQLObject):
     
     payment = UnicodeCol(default="Ventanilla", length=20)
     
-    # History of cuota payment
     cuotaTables = MultipleJoin("CuotaTable", orderBy='year')
-    # Active loans
+    """Historial de aportaciones"""
     loans = MultipleJoin("Loan", orderBy='startDate')
-    # Payed loans
+    """Préstamos activos"""
     payedLoans = MultipleJoin("PayedLoan", orderBy='startDate')
+    """Préstamos cancelados"""
     extras = MultipleJoin("Extra")
-    flyers = MultipleJoin("Flyer")
+    """Deducciones extra a efectuar"""
     deduced = MultipleJoin("Deduced", orderBy=['year', 'month'])
-    delayed = MultipleJoin("Delayed")
+    """Deducciones efectuadas por planilla en un mes y año"""
     observaciones = MultipleJoin('Observacion')
+    """Observaciones acerca de actividad en un afiliado"""
     solicitudes = MultipleJoin('Solicitud')
-    reintegros =MultipleJoin('Reintegro')
+    """Solicitudes de Préstamo ingresada"""
+    reintegros = MultipleJoin('Reintegro')
+    """Reintegros a efectuar"""
+    muerte = DateCol(default=date.today)
+    """Fecha de Fallecimiento"""
+    desactivacion = DateCol(default=date.today)
+    """Fecha de Desactivación"""
     
     def get_monthly(self):
         
@@ -133,7 +163,7 @@ class Affiliate(SQLObject):
         table = None
         
         try:
-            table = CuotaTable.selectBy(afiliado=self,year=year).getOne()
+            table = CuotaTable.selectBy(affiliate=self,year=year).getOne()
         except SQLObjectNotFound:
             kw = dict()
             kw['affiliate'] = self
@@ -147,7 +177,7 @@ class Affiliate(SQLObject):
         table = None
         
         try:
-            table = CuotaTable.selectBy(afiliado=self,year=year).getOne()
+            table = CuotaTable.selectBy(affiliate=self,year=year).getOne()
         except SQLObjectNotFound:
             kw = dict()
             kw['affiliate'] = self
@@ -156,11 +186,11 @@ class Affiliate(SQLObject):
         
         table.remove_month(month)
     
-    def aport(self):
+    def aportaciones(self):
     
-        return sum(table.payed() for table in self.cuotaTables)
+        return sum(table.pagado() for table in self.cuotaTables)
     
-    def loan(self):
+    def deuda_prestamo(self):
         
         """Returns the amount debt by payment"""
         
@@ -168,7 +198,7 @@ class Affiliate(SQLObject):
     
     def debt(self):
         
-        return sum(table.debt() for table in self.cuotaTables)
+        return sum(table.deuda() for table in self.cuotaTables)
     
     def solvent(self, year):
         
@@ -178,27 +208,22 @@ class Affiliate(SQLObject):
     
     def multisolvent(self, year):
         
-        for table in self.cuotaTables:
-            if table.year > year:
+        for cuota in self.cuotaTables:
+            if cuota.year > year:
                 break
-            if not table.all():
+            if not cuota.todos():
                 return False
         return True
     
     def remove(self):
         
-        [table.remove() for table in self.cuotaTables]
+        for table in self.cuotaTables:
+            table.destroySelf()
+        
         for loan in self.loans:
             loan.remove()
+        
         self.destroySelf()
-    
-    def total(self, month, year):
-
-        os = Obligation.selectBy(year=year, month=month)
-        obligations = sum(o.amount for o in os)
-        extras = sum(e.amount for e in self.extras)
-        loan = sum(loan.get_payment() for loan in self.loans)
-        return extras + loan + obligations
     
     def get_month(self, year, month):
         
@@ -243,76 +268,124 @@ class CuotaTable(SQLObject):
     month11 = BoolCol(default=False)
     month12 = BoolCol(default=False)
     
-    def delayed(self):
+    def periodo(self):
         
-        if self.affiliate.joined == None:
-            return Zero
+        (start, end) = (1, 13)
         
-        start = 1
         if self.affiliate.joined.year == self.year:
             start = self.affiliate.joined.month
         
-        end = 13
         if self.year == date.today().year:
             end = date.today().month - 1
         
         if end == 0:
             end = 1
         
-        for n in range(start, end):
-            
-            if not getattr(self, "month%s" % n):
-                
+        return start, end
+    
+    def todos(self):
+        
+        """Verifica si el afiliado ha realizado todos los pagos del año"""
+        
+        inicio, fin = self.periodo()
+        for n in range(inicio, fin):
+            if not getattr(self, 'mes%s' % n):
+                return False
+        
+        return True
+    
+    def vacio(self):
+        
+        """Responde si el afiliado no ha realizado pagos durante el año"""
+        
+        inicio, fin = self.periodo()
+        for n in range(inicio, fin):
+            if getattr(self, 'mes%s' % n):
+                return False
+        
+        return True
+    
+    def cantidad(self, mes):
+        
+        total = Zero
+        os = Obligation.selectBy(year=self.year,month=mes)
+        
+        if self.affiliate.payment == "INPREMA" and not self.affiliate.jubilated is None:
+            if self.affiliate.jubilated.year < self.year:
+                total = sum(o.inprema for o in os)
+            elif self.affiliate.jubilated.year == self.year:
+                total += sum(o.amount for o in os if mes < self.affiliate.jubilated.month)
+                total += sum(o.inprema for o in os if mes >= self.affiliate.jubilated.month)
+            elif self.affiliate.jubilated.year > self.year:
+                total = sum(o.amount for o in os)
+        else:
+            total = sum(o.amount for o in os)
+        
+        return total
+    
+    def pago_mes(self, mes, periodo=None):
+        
+        """Muestra la cantidad pagada en el mes especificado"""
+        
+        if periodo == None:
+            inicio, fin = self.periodo()
+            periodo = range(inicio, fin)
+        
+        if not mes in periodo:
+            return Zero
+        
+        if not getattr(self, 'month%s' % mes):
+            return Zero
+        
+        return self.cantidad(mes)
+    
+    def deuda_mes(self, mes, periodo=None):
+        
+        """Muestra la cantidad debida en el mes especificado"""
+        
+        if periodo == None:
+            inicio, fin = self.periodo()
+            periodo = range(inicio, fin)
+        
+        if not mes in periodo:
+            return Zero
+        
+        if getattr(self, 'month%s' % mes):
+            return Zero
+        
+        return self.cantidad(mes)
+    
+    def deuda(self):
+        
+        """Obtiene la cantidad total debida durante el año"""
+        
+        inicio, fin = self.periodo()
+        periodo = range(inicio, fin)
+        return sum(self.deuda_mes(mes, periodo) for mes in periodo)
+    
+    def pagado(self):
+        
+        """Obtiene la cantidad total pagada durante el año"""
+        
+        inicio, fin = self.periodo()
+        periodo = range(inicio, fin)
+        return sum(self.pago_mes(mes, periodo) for mes in periodo)
+    
+    def delayed(self):
+        
+        if self.affiliate.joined == None:
+            return Zero
+        
+        """Obtiene el primer mes en el que no se haya efectuado un pago en las
+        aportaciones.
+        """
+        
+        inicio, fin = self.periodo()
+        for n in range(inicio, fin):
+            if not getattr(self, 'month%s' % n):
                 return n
         
         return Zero
-    
-    def total(self):
-        total = Decimal(0)
-        if self.all():
-            os = Obligation.select(Obligation.q.year==self.year)
-            total += sum(o.amount for o in os)
-            return total
-        for n in range(1, 13):
-            query = "obligation.year = %s and obligation.month = %s" % (self.year, n)
-            os = Obligation.select(query)
-            if self.affiliate.payment == "INPREMA" and not self.affiliate.jubilated is None:
-                if self.affiliate.jubilated.year == self.year:
-                    total += sum(o.amount for o in os if o.month < self.affiliate.jubilated.month)
-                    total += sum(o.inprema for o in os if o.month >= self.affiliate.jubilated.month)
-                elif self.affiliate.jubilated.year < self.year:
-                    total += sum(o.inprema for o in os)
-                elif self.affiliate.jubilated.year > self.year:
-                    total += sum(o.amount for o in os)
-            else:
-                total += sum(o.amount for o in os)
-        return total
-    
-    def debt(self):
-        if self.affiliate.joined == None:
-            return Zeros
-        
-        if self.all():
-            
-            return Zero
-        
-        if self.year == self.affiliate.joined.year:
-            total = Decimal(0)
-            query = "obligation.year = %s and obligation.month >= %s" % (self.year, self.affiliate.joined.month)
-            os = Obligation.select(query)
-            if self.affiliate.payment == "INPREMA":
-                if self.affiliate.jubilated.year == self.year:
-                    total += sum(o.amount for o in os if o.month < self.affiliate.jubilated.month)
-                    total += sum(o.inprema for o in os if o.month >= self.affiliate.jubilated.month)
-                elif self.affiliate.jubilated.year < self.year:
-                    total += sum(o.inprema for o in os)
-                elif self.affiliate.jubilated.year > self.year:
-                    total += sum(o.inprema for o in os)
-            else:
-                total += sum(o.amount for o in os)
-            return total - self.payed()
-        else:
-            return self.total() - self.payed()
     
     def edit_line(self, month):
         text = ' name="month%s"' % month
@@ -321,84 +394,6 @@ class CuotaTable(SQLObject):
         else:
             return text + ' '
     
-    def old(self):
-        today = date.today()
-        if self.affiliate.joined == None:
-            return Zeros
-        
-        if self.year == self.affiliate.joined.year:
-            
-            for n in range(self.affiliate.joined.month, 13):
-                month = getattr(self, "month%s" % n)
-                if month:
-                    continue
-                query = "obligation.year = %s and obligation.month = %s" % (self.year, n)
-                os = Obligation.select(query)
-                total = sum(o.amount for o in os)
-                return total
-        else:
-            for n in range(1, 13):
-                if self.year == today.year and n == today.month:
-                    return Zero
-                month = getattr(self, "month%s" % n)
-                if month:
-                    continue
-                query = "obligation.year = %s and obligation.month = %s" % (self.year, n)
-                os = Obligation.select(query)
-                total = sum(o.amount for o in os)
-                return total
-        return Zero
-    
-    def pay_old(self):
-        
-        if self.affiliate.joined == None:
-            return Zeros
-        
-        if self.year == self.affiliate.joined.year:
-            for n in range(self.affiliate.joined.month, 13):
-                month = getattr(self, "month%s" % n)
-                if month:
-                    continue
-                getattr(self, "month%s" % n, True)
-                return True
-        else:
-            for n in range(1, 13):
-                month = getattr(self, "month%s" % n)
-                if month:
-                    continue
-                getattr(self, "month%s" % n, True)
-                return True
-        return False
-
-    def amount(self, month):
-        
-        month = int(month)
-        if self.affiliate.joined == None:
-            return Zeros
-        
-        if self.affiliate.joined.year == self.year and month < self.affiliate.joined.month:
-            return Zeros
-        if not getattr(self, "month%s" % month):
-            return Zeros
-        
-        query = "obligation.year = %s and obligation.month = %s" % (self.year, month)
-        os = Obligation.select(query)
-        
-        total = Zeros
-        
-        if self.affiliate.payment == "INPREMA" and not self.affiliate.jubilated is None:
-            if self.affiliate.jubilated.year < self.year:
-                total = sum(o.inprema for o in os)
-            elif self.affiliate.jubilated.year == self.year:
-                total += sum(o.amount for o in os if month < self.affiliate.jubilated.month)
-                total += sum(o.inprema for o in os if month >= self.affiliate.jubilated.month)
-            elif self.affiliate.jubilated.year > self.year:
-                total = sum(o.amount for o in os)
-        else:
-            total = sum(o.amount for o in os)
-        
-        return total
-    
     def pay_month(self, month):
         setattr(self, "month%s" % month, True)
     
@@ -406,75 +401,12 @@ class CuotaTable(SQLObject):
         setattr(self, "month%s" % month, False)
     
     def all(self):
-        today = date.today()
-        if self.year == today.year:
-            for n in range(1, today.month + 1):
-                if not getattr(self, "month%s" % n):
-                    return False
-            return True
-        if self.affiliate.joined == None:
-            return self.month1 and self.month2 and self.month3 and self.month4 and self.month5 and self.month6 and self.month7 and self.month8 and self.month9 and self.month10 and self.month11 and self.month12
-        if self.year == self.affiliate.joined.year:
-            for n in range(self.affiliate.joined.month, 13):
-                if not getattr(self, "month%s" % n):
-                    return False
-            return True
-        else:
-            return self.month1 and self.month2 and self.month3 and self.month4 and self.month5 and self.month6 and self.month7 and self.month8 and self.month9 and self.month10 and self.month11 and self.month12
+        
+        return self.todos()
     
     def empty(self):
         
-        today = date.today()
-        if self.year == today.year:
-            for n in range(1, today.month):
-                if getattr(self, "month%s" % n):
-                    return False
-            return True
-        if self.affiliate.joined == None:
-            return not self.month1 and self.month2 and self.month3 and self.month4 and self.month5 and self.month6 and self.month7 and self.month8 and self.month9 and self.month10 and self.month11 and self.month12
-        if self.year == self.affiliate.joined.year:
-            for n in range(self.affiliate.joined.month, 13):
-                if getattr(self, "month%s" % n):
-                    return False
-            return True
-        else:
-            return not self.month1 and self.month2 and self.month3 and self.month4 and self.month5 and self.month6 and self.month7 and self.month8 and self.month9 and self.month10 and self.month11 and self.month12
-    
-    def payed(self):
-        total = Decimal(0)
-        if self.all():
-            if self.affiliate.joined is None: return total
-            if self.year == self.affiliate.joined.year:
-                query = "obligation.year = %s and obligation.month >= %s" % (self.year, self.affiliate.joined.month)
-            else:
-                query = "obligation.year = %s" % (self.year)
-            os = Obligation.select(query)
-            if self.affiliate.payment == "INPREMA" and not self.affiliate.jubilated is None:
-                if self.affiliate.jubilated.year == self.year:
-                    total += sum(o.amount for o in os if o.month < self.affiliate.jubilated.month)
-                    total += sum(o.inprema for o in os if o.month >= self.affiliate.jubilated.month)
-                elif self.affiliate.jubilated.year < self.year:
-                    total += sum(o.inprema for o in os)
-                elif self.affiliate.jubilated.year > self.year:
-                    total += sum(o.amount for o in os)
-            else:
-                total += sum(o.amount for o in os)
-            return total
-        for n in range(1, 13):
-            if getattr(self, "month%s" % n):
-                query = "obligation.year = %s and obligation.month = %s" % (self.year, n)
-                os = Obligation.select(query)
-                if self.affiliate.payment == "INPREMA" and not self.affiliate.jubilated is None:
-                    if self.affiliate.jubilated.year == self.year:
-                        total += sum(o.amount for o in os if o.month < self.affiliate.jubilated.month)
-                        total += sum(o.inprema for o in os if o.month >= self.affiliate.jubilated.month)
-                    elif self.affiliate.jubilated.year < self.year:
-                        total += sum(o.inprema for o in os)
-                    elif self.affiliate.jubilated.year > self.year:
-                        total += sum(o.amount for o in os)
-                else:
-                    total += sum(o.amount for o in os)
-        return total
+        return self.vacio()
 
 class Loan(SQLObject):
 
@@ -568,6 +500,23 @@ class Loan(SQLObject):
         
         return False
     
+    def refinanciar(self, pago, solicitud, cuenta, usuario, descripcion):
+        
+        self.pagar(pago, "Liquidacion", solicitud.entrega, True)
+        
+        prestamo = solicitud.prestamo(usuario)
+        
+        kw = dict()
+        kw['account'] = cuenta
+        kw['amount'] = pago
+        kw['name'] = kw['account'].name
+        kw['loan'] = prestamo
+        kw['description'] = descripcion
+        
+        Deduction(**kw)
+        
+        return prestamo
+    
     def net(self):
         
         """Obtains the amount that was given to the affiliate in the check"""
@@ -618,6 +567,7 @@ class Loan(SQLObject):
             kw = dict()
             kw['number'] = "%s/%s" % (n + self.number, self.months)
             kw['month'] = self.number + n + start
+            kw['enum'] = self.number + n
             kw['year'] = year
             while kw['month'] > 12:
                 kw['month'] = kw['month'] - 12
@@ -641,12 +591,16 @@ class Loan(SQLObject):
         
         futuro = self.future()
         if futuro == list():
-            continue
+            return
         
         ultimo_pago = futuro[-1]['payment']
         ultimo_mes = futuro[-1]['enum']
         if ultimo_pago < self.payment and ultimo_mes == self.months:
             self.debt += ((self.payment - ultimo_pago) * 2 / 3).quantize(dot01)
+    
+    def totaldebt(self):
+        
+        return self.debt
 
 class Pay(SQLObject):
     
@@ -804,6 +758,10 @@ class PayedLoan(SQLObject):
         """Obtains the amount that was given to the affiliate in the check"""
         
         return self.capital - sum(d.amount for d in self.deductions)
+    
+    def totaldebt(self):
+        
+        return 0
 
 class OldPay(SQLObject):
     
@@ -904,7 +862,7 @@ class OtherAccount(SQLObject):
     quantity = IntCol(default=0)
     amount = CurrencyCol(default=0)
     otherReport = ForeignKey("OtherReport")
-    
+
     def add(self, amount):
         self.amount += amount
         self.quantity += 1
@@ -918,7 +876,7 @@ class OtherDeduced(SQLObject):
 class AuxiliarPrestamo(object):
     
     def __init__(self, id, afiliado, monto, neto, papeleo, aportaciones,
-                 intereses, retencion):
+                 intereses, retencion, reintegros):
         
         self.id = id
         self.afiliado = afiliado
@@ -928,6 +886,7 @@ class AuxiliarPrestamo(object):
         self.aportaciones = aportaciones
         self.intereses = intereses
         self.retencion = retencion
+        self.reintegros = reintegros
 
 class Observacion(SQLObject):
     
@@ -958,7 +917,7 @@ class Solicitud(SQLObject):
         kw['months'] = self.periodo
         kw['last'] = self.entrega
         kw['startDate'] = self.entrega
-        # kw['letters'] = wording.parse(self.monto).capitalize()
+        kw['letters'] = wording.parse(self.monto).capitalize()
         kw['number'] = 0
         prestamo = Loan(**kw)
         prestamo.start()
@@ -1015,6 +974,8 @@ class Reintegro(SQLObject):
         kw['amount'] = self.monto
         kw['affiliate'] = self.afiliado
         kw['account'] = self.cuenta
+        kw['month'] = dia.month
+        kw['year'] = dia.year
         
         kw['detail'] = "Reintegro %s por %s" % (self.emision.strftime('%d/%m/%Y'), self.motivo)
         
