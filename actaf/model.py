@@ -276,7 +276,7 @@ class CuotaTable(SQLObject):
             start = self.affiliate.joined.month
         
         if self.year == date.today().year:
-            end = date.today().month - 1
+            end = date.today().month
         
         if end == 0:
             end = 1
@@ -601,6 +601,18 @@ class Loan(SQLObject):
     def totaldebt(self):
         
         return self.debt
+    
+    def totalIntereses(self):
+        
+        return sum(p.interest for p in self.pays)
+    
+    def totalCapital(self):
+        
+        sum(p.capital for p in self.pays)
+    
+    def totalPagado(self):
+        
+        return sum(p.amount for p in self.pays)
 
 class Pay(SQLObject):
     
@@ -620,7 +632,6 @@ class Pay(SQLObject):
         kw['interest'] = self.interest
         kw['amount'] = self.amount
         kw['receipt'] = self.receipt
-        kw['month'] = self.month
         self.destroySelf()
         OldPay(**kw)
     
@@ -762,6 +773,18 @@ class PayedLoan(SQLObject):
     def totaldebt(self):
         
         return 0
+    
+    def totalIntereses(self):
+        
+        return sum(p.interest for p in self.pays)
+    
+    def totalCapital(self):
+        
+        sum(p.capital for p in self.pays)
+    
+    def totalPagado(self):
+        
+        return sum(p.amount for p in self.pays)
 
 class OldPay(SQLObject):
     
@@ -781,7 +804,6 @@ class OldPay(SQLObject):
         kw['interest'] = self.interest
         kw['amount'] = self.amount
         kw['receipt'] = self.receipt
-        kw['month'] = self.month
         Pay(**kw)
         self.destroySelf()
 
