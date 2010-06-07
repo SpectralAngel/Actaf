@@ -602,17 +602,17 @@ class Loan(SQLObject):
         
         return self.debt
     
-    def totalIntereses(self):
+    def capitalPagado(self):
         
-        return sum(p.interest for p in self.pays)
+        return sum(p.capital for p in self.pays)
     
-    def totalCapital(self):
-        
-        sum(p.capital for p in self.pays)
-    
-    def totalPagado(self):
+    def pagado(self):
         
         return sum(p.amount for p in self.pays)
+    
+    def interesesPagados(self):
+        
+        return sum(p.interest for p in self.pays)
 
 class Pay(SQLObject):
     
@@ -637,7 +637,7 @@ class Pay(SQLObject):
     
     def revert(self):
         
-        self.loan.debt += self.capital
+        self.loan.debt = self.loan.capital - self.loan.capitalPagado() + self.capital
         self.loan.number -= 1
         self.destroySelf()
 
@@ -774,17 +774,17 @@ class PayedLoan(SQLObject):
         
         return 0
     
-    def totalIntereses(self):
+    def capitalPagado(self):
         
-        return sum(p.interest for p in self.pays)
+        return sum(p.capital for p in self.pays)
     
-    def totalCapital(self):
-        
-        sum(p.capital for p in self.pays)
-    
-    def totalPagado(self):
+    def pagado(self):
         
         return sum(p.amount for p in self.pays)
+    
+    def interesesPagados(self):
+        
+        return sum(p.interest for p in self.pays)
 
 class OldPay(SQLObject):
     
