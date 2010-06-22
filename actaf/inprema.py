@@ -24,47 +24,47 @@ import database
 import core
 
 def extraer_cambios():
-	
-	affiliates = database.get_affiliates_by_payment('INPREMA', True)
-	afiliados = dict()
-	
-	for a in affiliates:
-	
-		inprema = None
-		try:
-			inprema = int(a.escalafon)
-		except Exception:
-			pass
-		
-		afiliados[inprema] = a
-	
-	cambios = dict()
-	for afiliado in afiliados:
-		a = afiliados[afiliado]
-		cambios[afiliado] = core.Extraccion(a, a.get_monthly())
-		if not a.active:
-			cambios[afiliado].cantidad = 0
-			cambios[afiliado].marca = 'C'
-	
-	parser = core.AnalizadorINPREMA('inprema.csv', afiliados)
-	
-	for income in parser.parse():
-		try:
-			if income.cantidad == cambios[int(income.afiliado.escalafon)].cantidad:
-				del cambios[int(income.afiliado.escalafon)]
-			elif income.cantidad != cambios[int(income.afiliado.escalafon)].cantidad:
-				cambios[int(income.afiliado.escalafon)].marca = 'R'
-		except Exception:
-			print "%s %s" % (income.afiliado.escalafon, type(income.afiliado.escalafon))
-	
-	del cambios[None]
-	
-	dexter = csv.writer(open('dexter.csv', 'w'))
-	
-	for numero in cambios:
-		print cambios[numero]
-		dexter.writerow(cambios[numero].list())
+    
+    affiliates = database.get_affiliates_by_payment('INPREMA', True)
+    afiliados = dict()
+    
+    for a in affiliates:
+    
+        inprema = None
+        try:
+            inprema = int(a.escalafon)
+        except Exception:
+            pass
+        
+        afiliados[inprema] = a
+    
+    cambios = dict()
+    for afiliado in afiliados:
+        a = afiliados[afiliado]
+        cambios[afiliado] = core.Extraccion(a, a.get_monthly())
+        if not a.active:
+            cambios[afiliado].cantidad = 0
+            cambios[afiliado].marca = 'C'
+    
+    parser = core.AnalizadorINPREMA('inprema.csv', afiliados)
+    
+    for income in parser.parse():
+        try:
+            if income.cantidad == cambios[int(income.afiliado.escalafon)].cantidad:
+                del cambios[int(income.afiliado.escalafon)]
+            elif income.cantidad != cambios[int(income.afiliado.escalafon)].cantidad:
+                cambios[int(income.afiliado.escalafon)].marca = 'R'
+        except Exception:
+            print "%s %s" % (income.afiliado.escalafon, type(income.afiliado.escalafon))
+    
+    del cambios[None]
+    
+    dexter = csv.writer(open('dexter.csv', 'w'))
+    
+    for numero in cambios:
+        print cambios[numero]
+        dexter.writerow(cambios[numero].list())
 
 if __name__ == "__main__":
-	
-	extraer_cambios()
+    
+    extraer_cambios()

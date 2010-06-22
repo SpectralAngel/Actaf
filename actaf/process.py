@@ -24,57 +24,57 @@ import database
 import core
 
 def start(parser, dia, inprema=True, cotizacion='INPREMA'):
-	
-	"""Inicia el proceso de actualización de las aportaciones utilizando la
-	planilla recibida"""
-	
-	accounts = dict()
-	for account in database.get_accounts():
-		
-		accounts[account] = dict()
-		accounts[account]['number'] = 0
-		accounts[account]['amount'] = Decimal(0)
-	
-	updater = core.Actualizador(database.get_obligation(dia.year, dia.month, inprema),
-							accounts, dia)
-	
-	updater.registrar_cuenta(database.get_loan_account(), 'prestamo')
-	updater.registrar_cuenta(database.get_cuota_account(), 'cuota')
-	updater.registrar_cuenta(database.get_incomplete_account(), 'incomplete')
-	updater.registrar_cuenta(database.get_exceding_account(), 'excedente')
-	
-	# Cambiar por un par de acciones que muestren progreso
-	for income in parser.parse():
-		updater.update(income)
-	
-	reporte = None
-	if inprema:
-		reporte = database.create_other_report(accounts, dia.year, dia.month, cotizacion)
-	else:
-		reporte = database.create_report(accounts, dia.year, dia.month)
-	
-	return reporte
+    
+    """Inicia el proceso de actualización de las aportaciones utilizando la
+    planilla recibida"""
+    
+    accounts = dict()
+    for account in database.get_accounts():
+        
+        accounts[account] = dict()
+        accounts[account]['number'] = 0
+        accounts[account]['amount'] = Decimal(0)
+    
+    updater = core.Actualizador(database.get_obligation(dia.year, dia.month, inprema),
+                            accounts, dia)
+    
+    updater.registrar_cuenta(database.get_loan_account(), 'prestamo')
+    updater.registrar_cuenta(database.get_cuota_account(), 'cuota')
+    updater.registrar_cuenta(database.get_incomplete_account(), 'incomplete')
+    updater.registrar_cuenta(database.get_exceding_account(), 'excedente')
+    
+    # Cambiar por un par de acciones que muestren progreso
+    for income in parser.parse():
+        updater.update(income)
+    
+    reporte = None
+    if inprema:
+        reporte = database.create_other_report(accounts, dia.year, dia.month, cotizacion)
+    else:
+        reporte = database.create_report(accounts, dia.year, dia.month)
+    
+    return reporte
 
 def inprema(archivo, fecha):
-	
-	"""Incializa la actualización de las aportaciones mediante la planilla de
-	INPREMA"""
-	
-	affiliates = database.get_affiliates_by_payment("INPREMA", True)
-	afiliados = dict()
+    
+    """Incializa la actualización de las aportaciones mediante la planilla de
+    INPREMA"""
+    
+    affiliates = database.get_affiliates_by_payment("INPREMA", True)
+    afiliados = dict()
 
-	for a in affiliates:
-	
-		inprema = None
-		try:
-			inprema = int(a.escalafon)
-		except Exception, e:
-			print e.message
-	
-		afiliados[inprema] = a
+    for a in affiliates:
+    
+        inprema = None
+        try:
+            inprema = int(a.escalafon)
+        except Exception, e:
+            print e.message
+    
+        afiliados[inprema] = a
 
-	parser = core.AnalizadorINPREMA(archivo, afiliados)
+    parser = core.AnalizadorINPREMA(archivo, afiliados)
 
-	reporte = start(parser, fecha)
-	
-	return reporte
+    reporte = start(parser, fecha)
+    
+    return reporte

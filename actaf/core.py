@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf8 -*-
 #
 # core.py
@@ -42,7 +41,10 @@ class Analizador(object):
     def __init__(self, filename, affiliates):
     
         self.file = open(filename)
-        self.affiliates = affiliates
+        self.affiliates = dict()
+        for a in affiliates:
+            self.affiliates[a.cardID] =  a
+        
         self.parsed = list()
     
     def parse(self):
@@ -52,13 +54,15 @@ class Analizador(object):
         de :class:`Ingreso`"""
         
         for line in self.file:
-
+            if line[89:93] != "0011":
+                continue
+            
             amount = Decimal(str(line[94:111])) / hundred
             card = str(line[6:10] + '-' + line[10:14] + '-' + line[14:19])
-            try:
-                afiliado = database.Affiliate.selectBy(cardID=card).getOne()
-                self.parsed.append(Ingreso(afiliado, amount))
-            except:
+            
+            if card in self.affiliates:
+                self.parsed.append(Ingreso(self.affiliates[card], amount))
+            else:
                 print("Error de parseo no se encontro la identidad %s" % card)
         
         return self.parsed

@@ -118,4 +118,3 @@ def create_other_report(accounts, year, month, other):
                     quantity=accounts[account]['number'], otherReport=report, account=account)
     
     return report
-

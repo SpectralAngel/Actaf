@@ -118,4 +118,3 @@ if __name__ == '__main__':
     for retrasada in procesar_retrasadas('Escalafon'):
     
         retrasada.crear_extra()
-
