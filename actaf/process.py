@@ -28,6 +28,8 @@ def start(parser, dia, inprema=True, cotizacion='INPREMA'):
     """Inicia el proceso de actualización de las aportaciones utilizando la
     planilla recibida"""
     
+    print "Iniciando proceso de Actualizacion, esto puede tardar mucho tiempo"
+    
     accounts = dict()
     for account in database.get_accounts():
         
@@ -52,6 +54,8 @@ def start(parser, dia, inprema=True, cotizacion='INPREMA'):
         reporte = database.create_other_report(accounts, dia.year, dia.month, cotizacion)
     else:
         reporte = database.create_report(accounts, dia.year, dia.month)
+    
+    print "Proceso de actualización Exitoso!"
     
     return reporte
 

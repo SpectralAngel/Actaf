@@ -103,8 +103,8 @@ class MainWindow(object):
             afiliados = database.get_affiliates_by_payment("Escalafon", False)
             
             parser = core.Analizador(archivo.get_filename(), afiliados)
-            
-            report = process.start(parser, afiliados, fecha.get_date())
+            dia = fecha.get_date()
+            report = process.start(parser, date(dia[0], dia[1] + 1, dia[2]), False)
             
             self.create_report_window(report)
     
