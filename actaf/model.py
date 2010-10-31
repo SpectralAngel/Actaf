@@ -38,6 +38,20 @@ Zeros = Decimal(0)
 # Clases Especificas del Negocio
 ################################################################################
 
+class Departamento(SQLObject):
+    
+    nombre = UnicodeCol(length=50,default=None)
+    
+    municipios = MultipleJoin('Municipio')
+    #afiliados = MultipleJoin('Affiliate')
+
+class Municipio(SQLObject):
+    
+    departamento = ForeignKey('Departamento')
+    nombre = UnicodeCol(length=50,default=None)
+    
+    #afiliados = MultipleJoin('Affiliate')
+
 class Affiliate(SQLObject):
 
     """Representa un miembro de la institución, cada afiliado puede tener
@@ -75,6 +89,7 @@ class Affiliate(SQLObject):
     address = UnicodeCol(default=None)
     phone = UnicodeCol(default=None)
     
+    #departamento = ForeignKey('departamento')
     state = UnicodeCol(length=50, default=None)
     school = UnicodeCol(length=255, default=None)
     school2 = UnicodeCol(length=255, default=None)
@@ -116,6 +131,7 @@ class Affiliate(SQLObject):
     sobrevivencias = MultipleJoin("Sobrevivencia", joinColumn="afiliado_id")
     devoluciones = MultipleJoin("Devolucion", joinColumn="afiliado_id")
     funebres = MultipleJoin("Funebre", joinColumn="afiliado_id")
+    inscripciones = MultipleJoin("Inscripcion", joinColumn="afiliado_id")
     
     def get_monthly(self):
         
@@ -172,6 +188,11 @@ class Affiliate(SQLObject):
         try:
             cuota = CuotaTable.selectBy(affiliate=self, year=year).getOne()
         except SQLObjectNotFound:
+            
+            # Esto evita crear un año de aportaciones incorrecto
+            if year > self.joined.year:
+                return None
+            
             kw = dict()
             kw['affiliate'] = self
             kw['year'] = year
@@ -226,11 +247,13 @@ class Affiliate(SQLObject):
     def get_month(self, year, month):
         
         table = self.obtenerAportaciones(year)
-        return getattr(table, "month%s" % month)
-    
-    def link(self, year, month):
         
-        return "/affiliate/posteo/?how=%s&year=%s&month=%s&code=%s" % (self.payment, year, month, self.id)
+        # en caso que el afiliado sea de afiliación más reciente que el año
+        # solicitado
+        if table == None:
+            return False
+        
+        return getattr(table, "month%s" % month)
     
     def get_age(self):
         
@@ -284,7 +307,7 @@ class CuotaTable(SQLObject):
         
         inicio, fin = self.periodo()
         for n in range(inicio, fin):
-            if not getattr(self, 'mes%s' % n):
+            if not getattr(self, 'month{0}'.format(n)):
                 return False
         
         return True
@@ -295,7 +318,7 @@ class CuotaTable(SQLObject):
         
         inicio, fin = self.periodo()
         for n in range(inicio, fin):
-            if getattr(self, 'mes%s' % n):
+            if getattr(self, 'month{0}'.format(n)):
                 return False
         
         return True
@@ -306,13 +329,17 @@ class CuotaTable(SQLObject):
         os = Obligation.selectBy(year=self.year,month=mes)
         
         if self.affiliate.payment == "INPREMA" and not self.affiliate.jubilated is None:
+        
             if self.affiliate.jubilated.year < self.year:
                 total = sum(o.inprema for o in os)
+            
             elif self.affiliate.jubilated.year == self.year:
                 total += sum(o.amount for o in os if mes < self.affiliate.jubilated.month)
                 total += sum(o.inprema for o in os if mes >= self.affiliate.jubilated.month)
+            
             elif self.affiliate.jubilated.year > self.year:
                 total = sum(o.amount for o in os)
+        
         else:
             total = sum(o.amount for o in os)
         
@@ -329,7 +356,7 @@ class CuotaTable(SQLObject):
         if not mes in periodo:
             return Zero
         
-        if not getattr(self, 'month%s' % mes):
+        if not getattr(self, 'month{0}'.format(mes)):
             return Zero
         
         return self.cantidad(mes)
@@ -345,7 +372,7 @@ class CuotaTable(SQLObject):
         if not mes in periodo:
             return Zero
         
-        if getattr(self, 'month%s' % mes):
+        if getattr(self, 'month{0}'.format(mes)):
             return Zero
         
         return self.cantidad(mes)
@@ -376,24 +403,24 @@ class CuotaTable(SQLObject):
         """
         
         inicio, fin = self.periodo()
-        for n in range(inicio, fin):
-            if not getattr(self, 'month%s' % n):
+        for n in range(inicio, fin - 1):
+            if not getattr(self, 'month{0}'.format(n)):
                 return n
         
         return Zero
     
     def edit_line(self, month):
-        text = ' name="month%s"' % month
-        if getattr(self, "month%s" % month):
+        text = ' name="month{0}"'.format(month)
+        if getattr(self, 'month{0}'.format(month)):
             return text + ' checked'
         else:
             return text + ' '
     
     def pay_month(self, month):
-        setattr(self, "month%s" % month, True)
+        setattr(self, 'month{0}'.format(month), True)
     
     def remove_month(self, month):
-        setattr(self, "month%s" % month, False)
+        setattr(self, 'month{0}'.format(month), False)
     
     def all(self):
         
@@ -459,15 +486,15 @@ class Loan(SQLObject):
         
         # La cantidad a pagar es igual o mayor que la deuda del préstamo, por
         # lo tanto se considera la ultima cuota y no se cargaran intereses
-        #if(self.debt <= amount):
+        if(self.debt <= amount):
         #   
-        #    self.last = kw['day']
-        #    kw['capital'] = kw['amount']
-        #    # Register the payment in the database
-        #    Pay(**kw)
-        #    # Remove the loan and convert it to PayedLoan
-        #    self.remove()
-        #    return True
+            self.last = kw['day']
+            kw['capital'] = kw['amount']
+            # Register the payment in the database
+            Pay(**kw)
+            # Remove the loan and convert it to PayedLoan
+            self.remove()
+            return True
         if libre:
             kw['interest'] = 0
         else:
@@ -487,7 +514,7 @@ class Loan(SQLObject):
         # Increase the number of payments by one
         self.number += 1
         
-        if self.debt == 0:
+        if self.debt <= 0:
             self.remove()
             return True
         
@@ -958,7 +985,7 @@ class Reintegro(SQLObject):
     """Codigo de la planilla enviado por el empleador"""
     motivo = UnicodeCol(length=100)
     """Razón por la cual se debe efectuar el cobro de nuevo"""
-    formaPago = ForeignKey("FormaPago", default=FormaPago.get(1))
+    formaPago = ForeignKey("FormaPago")
     """Modo en que se efectuó el cobro"""
     pagado = BoolCol(default=False)
     """Identifica si el reintegro ya ha sido pagado"""
@@ -972,6 +999,7 @@ class Reintegro(SQLObject):
         """Marca el :class:`Reintegro` como pagado"""
         
         self.pagado = True
+        self.cancelacion = dia
     
     def deduccion(self, dia=date.today()):
         
@@ -1037,3 +1065,42 @@ class Funebre(SQLObject):
     pariente = UnicodeCol(length=100)
     """Familiar que fallecio"""
     banco = UnicodeCol(length=50)
+
+class Asamblea(SQLObject):
+    
+    """Representación de asambleas efectuadas por la organización"""
+    
+    numero = IntCol()
+    nombre = UnicodeCol(length=100)
+    departamento = ForeignKey('Departamento')
+    municipio = ForeignKey('Municipio')
+
+class Banco(SQLObject):
+    
+    """Instituciones bancarías a través de las cuales se efectuan los pagos de
+    :class:`Viaticos`"""
+    
+    nombre = UnicodeCol(length=100)
+
+class Viatico(SQLObject):
+    
+    """Describe las cantidades a pagar por departamento para cada
+    :class:`Asamblea`"""
+    
+    asamblea = ForeignKey('Asamblea')
+    departamento = ForeignKey('Departamento')
+    monto = CurrencyCol()
+
+class Inscripcion(SQLObject):
+    
+    """Pagos a efectuar por concepto de :class:`Viaticos` a un
+    :class:`Affiliate`"""
+    
+    afiliado = ForeignKey('Affiliate')
+    """:class:`Afiliado` a quien se entrega"""
+    asamblea = ForeignKey('Asamblea')
+    departamento = ForeignKey('Departamento')
+    viatico = ForeignKey('Viatico')
+    cuenta = BigIntCol()
+    enviado = BoolCol(default=False)
+    envio = DateCol(default=date.today)
