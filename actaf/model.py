@@ -26,7 +26,7 @@ from decimal import Decimal
 from datetime import date
 import math
 
-scheme = 'mysql://asura:$a1ntcro$$@172.16.10.68/afiliados'
+scheme = 'mysql://asura:$a1ntcro$$@172.16.10.68/afiliados?charset=utf8'
 connection = connectionForURI(scheme)
 sqlhub.processConnection = connection
 
@@ -37,20 +37,6 @@ Zeros = Decimal(0)
 ################################################################################
 # Clases Especificas del Negocio
 ################################################################################
-
-class Departamento(SQLObject):
-    
-    nombre = UnicodeCol(length=50,default=None)
-    
-    municipios = MultipleJoin('Municipio')
-    #afiliados = MultipleJoin('Affiliate')
-
-class Municipio(SQLObject):
-    
-    departamento = ForeignKey('Departamento')
-    nombre = UnicodeCol(length=50,default=None)
-    
-    #afiliados = MultipleJoin('Affiliate')
 
 class Affiliate(SQLObject):
 
@@ -89,7 +75,6 @@ class Affiliate(SQLObject):
     address = UnicodeCol(default=None)
     phone = UnicodeCol(default=None)
     
-    #departamento = ForeignKey('departamento')
     state = UnicodeCol(length=50, default=None)
     school = UnicodeCol(length=255, default=None)
     school2 = UnicodeCol(length=255, default=None)
@@ -131,7 +116,6 @@ class Affiliate(SQLObject):
     sobrevivencias = MultipleJoin("Sobrevivencia", joinColumn="afiliado_id")
     devoluciones = MultipleJoin("Devolucion", joinColumn="afiliado_id")
     funebres = MultipleJoin("Funebre", joinColumn="afiliado_id")
-    inscripciones = MultipleJoin("Inscripcion", joinColumn="afiliado_id")
     
     def get_monthly(self):
         
@@ -253,7 +237,7 @@ class Affiliate(SQLObject):
         if table == None:
             return False
         
-        return getattr(table, "month%s" % month)
+        return getattr(table, "month{0}".format(month))
     
     def get_age(self):
         
@@ -487,7 +471,7 @@ class Loan(SQLObject):
         # La cantidad a pagar es igual o mayor que la deuda del préstamo, por
         # lo tanto se considera la ultima cuota y no se cargaran intereses
         if(self.debt <= amount):
-        #   
+           
             self.last = kw['day']
             kw['capital'] = kw['amount']
             # Register the payment in the database
@@ -985,7 +969,7 @@ class Reintegro(SQLObject):
     """Codigo de la planilla enviado por el empleador"""
     motivo = UnicodeCol(length=100)
     """Razón por la cual se debe efectuar el cobro de nuevo"""
-    formaPago = ForeignKey("FormaPago")
+    formaPago = ForeignKey("FormaPago", default=FormaPago.get(1))
     """Modo en que se efectuó el cobro"""
     pagado = BoolCol(default=False)
     """Identifica si el reintegro ya ha sido pagado"""
@@ -1010,7 +994,7 @@ class Reintegro(SQLObject):
         
         kw = dict()
         kw['amount'] = self.monto
-        kw['affiliate'] = self.afiliado
+        kw['affiliate'] = self.affiliate
         kw['account'] = self.cuenta
         kw['month'] = dia.month
         kw['year'] = dia.year
@@ -1065,42 +1049,3 @@ class Funebre(SQLObject):
     pariente = UnicodeCol(length=100)
     """Familiar que fallecio"""
     banco = UnicodeCol(length=50)
-
-class Asamblea(SQLObject):
-    
-    """Representación de asambleas efectuadas por la organización"""
-    
-    numero = IntCol()
-    nombre = UnicodeCol(length=100)
-    departamento = ForeignKey('Departamento')
-    municipio = ForeignKey('Municipio')
-
-class Banco(SQLObject):
-    
-    """Instituciones bancarías a través de las cuales se efectuan los pagos de
-    :class:`Viaticos`"""
-    
-    nombre = UnicodeCol(length=100)
-
-class Viatico(SQLObject):
-    
-    """Describe las cantidades a pagar por departamento para cada
-    :class:`Asamblea`"""
-    
-    asamblea = ForeignKey('Asamblea')
-    departamento = ForeignKey('Departamento')
-    monto = CurrencyCol()
-
-class Inscripcion(SQLObject):
-    
-    """Pagos a efectuar por concepto de :class:`Viaticos` a un
-    :class:`Affiliate`"""
-    
-    afiliado = ForeignKey('Affiliate')
-    """:class:`Afiliado` a quien se entrega"""
-    asamblea = ForeignKey('Asamblea')
-    departamento = ForeignKey('Departamento')
-    viatico = ForeignKey('Viatico')
-    cuenta = BigIntCol()
-    enviado = BoolCol(default=False)
-    envio = DateCol(default=date.today)

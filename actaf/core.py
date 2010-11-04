@@ -154,8 +154,9 @@ class Actualizador(object):
         
         if ingreso >= reintegro.monto and not reintegro.pagado:
             
-            ingreso -= reintegro.monto
-            self.cuentas[reintegro.cuenta] += reintegro.monto
+            ingreso.cantidad -= reintegro.monto
+            self.cuentas[reintegro.cuenta]['amount'] += reintegro.monto
+            self.cuentas[reintegro.cuenta]['number'] += 1
             reintegro.deduccion(self.day)
     
     def extra(self, ingreso):
@@ -237,7 +238,7 @@ class Corrector(object):
             ultimo_mes = futuro[-1]['enum']
             if ultimo_pago < prestamo.payment and ultimo_mes == prestamo.months:
                 prestamo.debt += ((prestamo.payment - ultimo_pago) * 2 / 3).quantize(Decimal("0.01"))
-                print "Corregido prestamo %s" % prestamo.id
+                print "Corregido prestamo {0}".format(prestamo.id)
 
 class ReportLine(object):
     
@@ -255,7 +256,7 @@ class ReportLine(object):
         zeros = '%(#)018d' % {"#":total}
         if self.afiliado.cardID == None:
             return str()
-        return self.afiliado.cardID.replace('-', '') + '0011' + zeros
+        return "{0}{1}{2}".format(self.afiliado.cardID.replace('-', ''),'0011',zeros)
 
 class Generador(object):
     
@@ -327,8 +328,9 @@ class Extraccion(object):
     
     def list(self):
         
-        return [self.afiliado.escalafon, self.cantidad, self.marca]
+        return [self.afiliado.id, self.afiliado.lastName, self.afiliado.firstName,
+                self.afiliado.escalafon, self.cantidad, self.marca]
     
     def __str__(self):
         
-        return self.afiliado.escalafon + ' ' + str(self.cantidad) + ' ' + self.marca
+        return "{0} {1} {1}".format(self.afiliado.escalafon, str(self.cantidad), self.marca)

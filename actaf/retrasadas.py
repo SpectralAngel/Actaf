@@ -42,6 +42,8 @@ class Retrasada(object):
         #                                                model.Obligacion.Anio=self.anio).all()
         
         # Version para TurboAffiliate
+        obligaciones = None
+        cuenta = None
         try:
             cuenta = model.CuentaRetrasada.selectBy(mes=self.mes, anio=self.anio).getOne()
             obligaciones = model.Obligation.selectBy(month=self.mes, year=self.anio)
@@ -115,6 +117,7 @@ if __name__ == '__main__':
     except ImportError:
         pass
     
-    for retrasada in procesar_retrasadas('Escalafon'):
+    for retrasada in procesar_retrasadas(u'Escalafon'):
     
         retrasada.crear_extra()
+
