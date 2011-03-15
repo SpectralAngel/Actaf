@@ -120,4 +120,3 @@ if __name__ == '__main__':
     for retrasada in procesar_retrasadas(u'Escalafon'):
     
         retrasada.crear_extra()
-

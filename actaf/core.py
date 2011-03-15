@@ -171,7 +171,7 @@ class Actualizador(object):
             for extra in ingreso.afiliado.extras:
                 self.cuentas[extra.account]['amount'] += extra.amount
                 self.cuentas[extra.account]['number'] += 1
-                extra.act()
+                extra.act(self.day)
         # La cantidad solo cubre parcialmente las extras
         else:
             for extra in ingreso.afiliado.extras:
@@ -179,7 +179,7 @@ class Actualizador(object):
                     ingreso.cantidad -= extra.amount
                     self.cuentas[extra.account]['amount'] += extra.amount
                     self.cuentas[extra.account]['number'] += 1
-                    extra.act()
+                    extra.act(self.day)
     
     def excedente(self, ingreso):
         
