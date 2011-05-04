@@ -37,10 +37,11 @@ def get_loan(prestamo):
 
 def get_affiliates_by_payment(payment, active_only=False):
     
+    cotizacion = Cotizacion.get(payment)
     if active_only:
-        return Affiliate.selectBy(payment=payment, active=True)
+        return Affiliate.selectBy(cotizacion=cotizacion, active=True)
     
-    return Affiliate.select(Affiliate.q.payment==payment)
+    return Affiliate.selectBy(cotizacion=cotizacion)
 
 def get_all_affiliates():
     
@@ -109,9 +110,10 @@ def create_report(accounts, year, month):
     
     return report
 
-def create_other_report(accounts, year, month, other):
+def create_other_report(accounts, year, month, cotizacion):
     
-    report = OtherReport(year=year, month=month, payment=other)
+    cotizacion = Cotizacion.get(cotizacion)
+    report = OtherReport(year=year, month=month, cotizacion=cotizacion)
     for account in accounts:
         if accounts[account]['amount'] != 0:
             OtherAccount(amount=accounts[account]['amount'],

@@ -23,7 +23,7 @@ from decimal import Decimal
 import database
 import core
 
-def start(parser, dia, inprema=True, cotizacion='INPREMA'):
+def start(parser, dia, inprema=True, cotizacion=2):
     
     """Inicia el proceso de actualización de las aportaciones utilizando la
     planilla recibida"""
@@ -64,7 +64,7 @@ def inprema(archivo, fecha):
     """Incializa la actualización de las aportaciones mediante la planilla de
     INPREMA"""
     
-    affiliates = database.get_affiliates_by_payment("INPREMA", True)
+    affiliates = database.get_affiliates_by_payment(2, True)
     afiliados = dict()
 
     for a in affiliates:

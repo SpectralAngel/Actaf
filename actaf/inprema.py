@@ -25,7 +25,7 @@ import core
 
 def extraer_cambios():
     
-    affiliates = database.get_affiliates_by_payment('INPREMA', True)
+    affiliates = database.get_affiliates_by_payment(2, True)
     afiliados = dict()
     
     for a in affiliates:
@@ -55,7 +55,7 @@ def extraer_cambios():
             elif income.cantidad != cambios[int(income.afiliado.escalafon)].cantidad:
                 cambios[int(income.afiliado.escalafon)].marca = 'R'
         except Exception:
-            print "%s %s" % (income.afiliado.escalafon, type(income.afiliado.escalafon))
+            print "{0} {1}".format(income.afiliado.escalafon, type(income.afiliado.escalafon))
     
     del cambios[None]
     

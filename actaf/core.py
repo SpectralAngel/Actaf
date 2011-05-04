@@ -33,7 +33,7 @@ class Ingreso(object):
         
         self.afiliado, self.cantidad = (afiliado, cantidad)
 
-class Analizador(object):
+class AnalizadorEscalafon(object):
     
     """Extrae los datos de la planilla de Escalafon y los convierte en
     una representación interna de los cobros"""
@@ -282,7 +282,7 @@ class Generador(object):
         
         """Calcula las cantidades a pagar por los afiliados"""
         
-        afiliados = database.get_affiliates_by_payment("Escalafon", True)
+        afiliados = database.get_affiliates_by_payment(1, True)
         
         for afiliado in afiliados:
         

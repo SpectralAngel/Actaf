@@ -100,9 +100,9 @@ class MainWindow(object):
         
         if respuesta == gtk.RESPONSE_OK:
             
-            afiliados = database.get_affiliates_by_payment("Escalafon", False)
+            afiliados = database.get_affiliates_by_payment(1, False)
             
-            parser = core.Analizador(archivo.get_filename(), afiliados)
+            parser = core.AnalizadorEscalafon(archivo.get_filename(), afiliados)
             dia = fecha.get_date()
             report = process.start(parser, date(dia[0], dia[1] + 1, dia[2]), False)
             
