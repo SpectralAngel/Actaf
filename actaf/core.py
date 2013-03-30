@@ -43,7 +43,7 @@ class AnalizadorEscalafon(object):
         self.file = open(filename)
         self.affiliates = dict()
         for a in affiliates:
-            self.affiliates[a.cardID] =  a
+            self.affiliates[a.cardID] = a
         
         self.parsed = list()
     
@@ -53,19 +53,57 @@ class AnalizadorEscalafon(object):
         Identidad y asignarle la cantidad deducida, entregandola en una lista
         de :class:`Ingreso`"""
         
-        for line in self.file:
-            if line[89:93] != "0011":
-                continue
-            
-            amount = Decimal(str(line[94:111])) / hundred
-            card = str(line[6:10] + '-' + line[10:14] + '-' + line[14:19])
-            
-            if card in self.affiliates:
-                self.parsed.append(Ingreso(self.affiliates[card], amount))
-            else:
-                print("Error de parseo no se encontro la identidad %s" % card)
+        lines = filter((lambda l: l[89:93] == "0011"), self.file)
+        matches = map(distribuir, lines)
         
+        map((lambda l: self.match(l)), matches)
         return self.parsed
+    
+    def match(self, line):
+        
+        if line[0] in self.affiliates:
+            self.parsed.append(Ingreso(self.affiliates[line[0]], line[1]))
+        else:
+            print("Error de parseo no se encontro la identidad {0}".format(line[0]))
+
+def distribuir(line):
+    
+    return str(line[6:10] + '-' + line[10:14] + '-' + line[14:19]), Decimal(str(line[94:111])) / hundred
+
+class AnalizadorCSV(object):
+    
+    def __init__(self, filename, affiliates):
+        
+        self.reader = csv.reader(open(filename))
+        self.affiliates = dict()
+        for a in affiliates:
+            if a.cardID == None:
+                continue
+            self.affiliates[a.cardID.replace('-', '')] = a
+        self.parsed = list()
+        self.perdidos = 0
+    
+    def parse(self):
+        
+        """Se encarga de tomar linea por linea cada uno de los códigos de
+        cobro y asignarle la cantidad deducida, entregandola en una lista
+        de :class:`Ingreso`"""
+        
+        map((lambda r: self.single(r)), self.reader)
+                
+        print self.perdidos
+        return self.parsed
+    
+    def single(self, row):
+        
+        amount = Decimal(row[2])
+        identidad = row[0]
+        try:
+            self.parsed.append(Ingreso(self.affiliates[identidad], amount))
+        
+        except:
+            self.perdidos += 1
+            print("Error de parseo no se encontro la identidad {0}".format(identidad))
 
 class AnalizadorINPREMA(object):
     
@@ -77,6 +115,7 @@ class AnalizadorINPREMA(object):
         self.reader = csv.reader(open(filename))
         self.affiliates = affiliates
         self.parsed = list()
+        self.perdidos = 0
     
     def parse(self):
         
@@ -84,20 +123,21 @@ class AnalizadorINPREMA(object):
         cobro y asignarle la cantidad deducida, entregandola en una lista
         de :class:`Ingreso`"""
         
-        perdidos = 0
-        for row in self.reader:
-            
-            amount = Decimal(row[2])
-            cobro = int(row[0])
-            try:
-                self.parsed.append(Ingreso(self.affiliates[cobro], amount))
-            
-            except:
-                perdidos += 1
-                print("Error de parseo no se encontro la identidad %s" % cobro)
+        map((lambda r: self.single(r)), self.reader)
                 
-        print perdidos
+        print self.perdidos
         return self.parsed
+    
+    def single(self, row):
+        
+        amount = Decimal(row[2])
+        cobro = int(row[0])
+        try:
+            self.parsed.append(Ingreso(self.affiliates[cobro], amount))
+        
+        except:
+            self.perdidos += 1
+            print("Error de parseo no se encontro la identidad {0}".format(cobro))
 
 class Actualizador(object):
     
@@ -123,14 +163,11 @@ class Actualizador(object):
         """Actualiza el estado de cuenta de acuerdo a un :class:`Ingreso`"""
         
         self.cuota(ingreso)
-        
-        for loan in ingreso.afiliado.loans:
-            self.prestamo(loan, ingreso)
-            
-        for reintegro in ingreso.afiliado.reintegros:
-            self.reintegros(reintegro, ingreso)
-        
         self.extra(ingreso)
+        
+        map((lambda r: self.reintegros(r, ingreso)), ingreso.afiliado.reintegros)
+        map((lambda p: self.prestamo(p, ingreso)), ingreso.afiliado.loans)
+        
         if ingreso.cantidad > 0:
             
             self.excedente(ingreso)
@@ -143,10 +180,10 @@ class Actualizador(object):
 
             self.cuentas[self.registro['cuota']]['amount'] += self.obligacion
             self.cuentas[self.registro['cuota']]['number'] += 1
-            afiliado = database.get_affiliate(ingreso.afiliado.id)
-            afiliado.pay_cuota(self.day.year, self.day.month)
+            #afiliado = database.get_affiliate(ingreso.afiliado.id)
+            ingreso.afiliado.pay_cuota(self.day.year, self.day.month)
             ingreso.cantidad -= self.obligacion
-            database.create_deduction(ingreso.afiliado, self.obligacion, self.registro['cuota'])
+            database.create_deduction(ingreso.afiliado, self.obligacion, self.registro['cuota'], self.day)
     
     def reintegros(self, reintegro, ingreso):
         
@@ -159,27 +196,34 @@ class Actualizador(object):
             self.cuentas[reintegro.cuenta]['number'] += 1
             reintegro.deduccion(self.day)
     
+    def procesar_extra(self, extra, ingreso, disminuir=False):
+        
+        """Ingresa los pagos de una deducción extra"""
+        
+        if disminuir:
+            if ingreso.cantidad >= extra.amount:
+                ingreso.cantidad -= extra.amount
+            else:
+                return
+        
+        self.cuentas[extra.account]['amount'] += extra.amount
+        self.cuentas[extra.account]['number'] += 1
+        extra.act(True, self.day)
+    
     def extra(self, ingreso):
         
         """Acredita las deducciones extra en el estado de cuenta"""
         
-        extras = sum(e.amount for e in ingreso.afiliado.extras)
+        #extras = sum(e.amount for e in ingreso.afiliado.extras)
         # La cantidad remanente excede o es igual a la cantidad sumada de todas
         # las extras
-        if ingreso.cantidad >= extras:
-            ingreso.cantidad -= extras
-            for extra in ingreso.afiliado.extras:
-                self.cuentas[extra.account]['amount'] += extra.amount
-                self.cuentas[extra.account]['number'] += 1
-                extra.act(self.day)
+        #if ingreso.cantidad >= extras:
+        #    ingreso.cantidad -= extras
+        #    map((lambda e: self.procesar_extra(e, ingreso)), ingreso.afiliado.extras)
+            
         # La cantidad solo cubre parcialmente las extras
-        else:
-            for extra in ingreso.afiliado.extras:
-                if ingreso.cantidad >= extra.amount:
-                    ingreso.cantidad -= extra.amount
-                    self.cuentas[extra.account]['amount'] += extra.amount
-                    self.cuentas[extra.account]['number'] += 1
-                    extra.act(self.day)
+        #else:
+        map((lambda e: self.procesar_extra(e, ingreso, True)), ingreso.afiliado.extras)
     
     def excedente(self, ingreso):
         
@@ -188,7 +232,7 @@ class Actualizador(object):
         
         self.cuentas[self.registro['excedente']]['amount'] += ingreso.cantidad
         self.cuentas[self.registro['excedente']]['number'] += 1
-        database.create_deduction(ingreso.afiliado, ingreso.cantidad, self.registro['excedente'])
+        database.create_deduction(ingreso.afiliado, ingreso.cantidad, self.registro['excedente'], self.day)
 
     def prestamo(self, prestamo, ingreso):
         
@@ -207,14 +251,14 @@ class Actualizador(object):
             self.cuentas[self.registro['prestamo']]['amount'] += payment
             self.cuentas[self.registro['prestamo']]['number'] += 1
             ingreso.cantidad -= payment
-            database.create_deduction(ingreso.afiliado, payment, self.registro['prestamo'])
+            database.create_deduction(ingreso.afiliado, payment, self.registro['prestamo'], self.day)
         # Cobrar lo que queda en las deducciones y marcalo como cuota incompleta
         # de prestamo
         else:
             database.efectuar_pago(prestamo, ingreso.cantidad, self.day)
             self.cuentas[self.registro['incomplete']]['amount'] += ingreso.cantidad
             self.cuentas[self.registro['incomplete']]['number'] += 1
-            database.create_deduction(ingreso.afiliado, ingreso.cantidad, self.registro['incomplete'])
+            database.create_deduction(ingreso.afiliado, ingreso.cantidad, self.registro['incomplete'], self.day)
             ingreso.cantidad = 0
 
 class Corrector(object):
@@ -223,22 +267,24 @@ class Corrector(object):
     
         self.corregir = open('correcciones.txt', 'w')
         self.prestamos = database.get_all_loans()
-        
-    def corregir_prestamos(self):
     
-        for prestamo in self.prestamos:
+    def iniciar(self):
+        
+        map((lambda p: self.corregir_prestamo(p)), self.prestamos)
+    
+    def corregir_prestamo(self, prestamo):
             
-            futuro = prestamo.future()
-            if futuro == list():
-                self.corregir.write(str(prestamo.id))
-                self.corregir.write('\n')
-                continue
-            
-            ultimo_pago = futuro[-1]['payment']
-            ultimo_mes = futuro[-1]['enum']
-            if ultimo_pago < prestamo.payment and ultimo_mes == prestamo.months:
-                prestamo.debt += ((prestamo.payment - ultimo_pago) * 2 / 3).quantize(Decimal("0.01"))
-                print "Corregido prestamo {0}".format(prestamo.id)
+        futuro = prestamo.future()
+        if futuro == list():
+            self.corregir.write(str(prestamo.id))
+            self.corregir.write('\n')
+            return
+        
+        ultimo_pago = futuro[-1]['payment']
+        ultimo_mes = futuro[-1]['enum']
+        if ultimo_pago < prestamo.payment and ultimo_mes == prestamo.months:
+            prestamo.debt += ((prestamo.payment - ultimo_pago) * 2 / 3).quantize(Decimal("0.01"))
+            print("Corregido prestamo {0}".format(prestamo.id))
 
 class ReportLine(object):
     
@@ -256,7 +302,7 @@ class ReportLine(object):
         zeros = '%(#)018d' % {"#":total}
         if self.afiliado.cardID == None:
             return str()
-        return "{0}{1}{2}".format(self.afiliado.cardID.replace('-', ''),'0011',zeros)
+        return "{0}{1}{2}".format(self.afiliado.cardID.replace('-', ''), '0011', zeros)
 
 class Generador(object):
     
@@ -296,12 +342,50 @@ class Generador(object):
         f = open(self.filename, 'w')
         start = "%(year)s%(month)02d" % {'year':int(self.year), 'month':int(self.month)}
         vacio = str()
+        
+        identidades = list()
         for line in self.lines:
+            
+            if line.afiliado.cardID == None:
+                print("Identidad Invalida: {0}".format(line.afiliado.id))
+                continue
+            
+            identidad = line.afiliado.cardID.replace('-', '')
+            if len(identidad) < 13 or len(identidad) > 13:
+                print("Identidad muy corta {0} {1}".format(line.afiliado.cardID, line.afiliado.id))
+                continue
+            
+            if identidad in identidades:
+                
+                print("Identidad Repetida {0} {1}".format(line.afiliado.cardID, line.afiliado.id))
+                continue
+            
+            identidades.append(identidad)
             str_line = str(line)
             if str_line == vacio:
                 continue
             l = start + str_line + "\n"
             f.write(l)
+    
+    def escribir_csv(self):
+        
+        archivo = csv.writer(open('banco.csv', 'w'))
+        identidades = list()
+        for line in self.lines:
+            if line.afiliado.cardID == None:
+                print("Identidad Invalida: {0}".format(line.afiliado.id))
+                continue
+            
+            identidad = line.afiliado.cardID.replace('-', '')
+            if len(identidad) < 13 or len(identidad) > 13:
+                print("Identidad muy corta {0} {1}".format(line.afiliado.cardID, line.afiliado.id))
+                continue
+            
+            if identidad in identidades:
+                
+                print("Identidad Repetida {0} {1}".format(line.afiliado.cardID, line.afiliado.id))
+            identidades.append(identidad)
+            archivo.writerow([identidad, line.amount])
     
     def agregar_ayuda_medica(self):
         
@@ -334,3 +418,4 @@ class Extraccion(object):
     def __str__(self):
         
         return "{0} {1} {1}".format(self.afiliado.escalafon, str(self.cantidad), self.marca)
+

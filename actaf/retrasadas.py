@@ -42,6 +42,9 @@ class Retrasada(object):
         #                                                model.Obligacion.Anio=self.anio).all()
         
         # Version para TurboAffiliate
+        if self.anio == None or self.mes == None:
+            return
+        
         obligaciones = None
         cuenta = None
         try:
@@ -54,6 +57,10 @@ class Retrasada(object):
         # obligacion = sum(o.cantidad for o in obligaciones)
         
         # TA
+        if obligaciones == None:
+            print self.anio, self.mes
+            return
+        
         obligacion = sum(o.amount for o in obligaciones)
         
         kw = dict()
@@ -74,40 +81,37 @@ class Retrasada(object):
         # kw['meses'] = 1
         # kw['afiliado'] = self.afiliado
         
-        extra = model.Extra(**kw)
+        model.Extra(**kw)
         #print extra
         # extra.flush()
+
+def crear_retrasada(afiliado):
+    
+    cuota = afiliado.get_delayed()
+    if cuota is None:
+        return Retrasada(afiliado, None, None)
+    
+    mes = cuota.delayed()
+    anio = cuota.year
+     
+    # SGAM
+    # cuota = afiliado.obtener_retrasada()
+    # if cuota is None:
+    #   continue
+    #
+    # mes = cuota.retrasada()
+    # anio = cuota.anio
+    
+    return Retrasada(afiliado, anio, mes)
 
 def procesar_retrasadas(cotizacion):
     
     # version para TurboAffiliate
-    afiliados = database.get_affiliates_by_payment(cotizacion)
+    afiliados = database.get_affiliates_by_payment(cotizacion, True)
     # version para SGAM
-    # cotizacion = model.Cotizacion.get_by(nombre=cotizacion)
     # afiliados = model.Afiliado.query.filter_by(cotizacion=cotizacion)
-    retrasadas = list()
     
-    for afiliado in afiliados:
-        
-        #TA
-        cuota = afiliado.get_delayed()
-        if cuota is None:
-            continue
-         
-        mes = cuota.delayed()
-        anio = cuota.year
-         
-        # SGAM
-        # cuota = afiliado.obtener_retrasada()
-        # if cuota is None:
-        #   continue
-        #
-        # mes = cuota.retrasada()
-        # anio = cuota.anio
-        
-        retrasadas.append(Retrasada(afiliado, anio, mes))
-    
-    return retrasadas
+    return map(crear_retrasada, afiliados)
 
 if __name__ == '__main__':
     
@@ -117,6 +121,11 @@ if __name__ == '__main__':
     except ImportError:
         pass
     
-    for retrasada in procesar_retrasadas(u'Escalafon'):
+    creacion = Retrasada.crear_extra
+    print "Obteniendo Retrasadas"
+    retrasadas = procesar_retrasadas(1)
+    print "Creando extras"
+    map(creacion, retrasadas)
+    #for retrasada in procesar_retrasadas(1):
     
-        retrasada.crear_extra()
+    #    retrasada.crear_extra()

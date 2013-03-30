@@ -1,9 +1,8 @@
-#!/usr/bin/env python
 # -*- coding: utf8 -*-
 #
 # database.py
 #
-# Copyright 2009, 2010 by Carlos Flores <cafg10@gmail.com>
+# Copyright 2009 - 2013 by Carlos Flores <cafg10@gmail.com>
 # This file is part of Actaf.
 #
 # Actaf is free software: you can redistribute it and/or modify
@@ -42,6 +41,15 @@ def get_affiliates_by_payment(payment, active_only=False):
         return Affiliate.selectBy(cotizacion=cotizacion, active=True)
     
     return Affiliate.selectBy(cotizacion=cotizacion)
+
+def get_affiliates_by_banco(banco, cotizacion, active_only=True):
+    
+    cotizacion = Cotizacion.get(cotizacion)
+        
+    return Affiliate.select(Affiliate.q.banco==banco,
+	                        Affiliate.q.cotizacion==cotizacion,
+                            Affiliate.q.cuenta!=None,
+	                        active=active_only)
 
 def get_all_affiliates():
     
@@ -96,9 +104,10 @@ def efectuar_pago(loan, amount, day, method='Planilla'):
     
     loan.pagar(amount, method, day)
 
-def create_deduction(affiliate, amount, account):
+def create_deduction(affiliate, amount, account, day=date.today()):
     
-    return Deduced(affiliate=affiliate, account=account, amount=amount)
+    return Deduced(affiliate=affiliate, account=account, amount=amount,
+                   month=day.month, year=day.year)
 
 def create_report(accounts, year, month):
     
@@ -120,3 +129,7 @@ def create_other_report(accounts, year, month, cotizacion):
                     quantity=accounts[account]['number'], otherReport=report, account=account)
     
     return report
+
+def get_bancos():
+    
+    return Banco.select()

@@ -35,7 +35,7 @@ import inprema
 
 class MainWindow(object):
     
-    """GUI class for Afiliate management"""
+    """GUI class for Affiliate management"""
     
     def __init__(self):
         
@@ -92,7 +92,7 @@ class MainWindow(object):
         
         # Cambiando la fecha a mostrar en la ventana de posteo
         hoy = date.today()
-        fecha.select_month(hoy.month-1, hoy.year)
+        fecha.select_month(hoy.month - 1, hoy.year)
         fecha.select_day(hoy.day)
         
         respuesta = posteo.run()
@@ -101,8 +101,10 @@ class MainWindow(object):
         if respuesta == gtk.RESPONSE_OK:
             
             afiliados = database.get_affiliates_by_payment(1, False)
+            #afiliados = database.get_all_affiliates()
             
             parser = core.AnalizadorEscalafon(archivo.get_filename(), afiliados)
+            #parser = core.AnalizadorCSV(archivo.get_filename(), afiliados)
             dia = fecha.get_date()
             report = process.start(parser, date(dia[0], dia[1] + 1, dia[2]), False)
             
@@ -148,14 +150,14 @@ class MainWindow(object):
         
         # Cambiando la fecha a mostrar en la ventana de posteo
         hoy = date.today()
-        fecha.select_month(hoy.month-1, hoy.year)
+        fecha.select_month(hoy.month - 1, hoy.year)
         fecha.select_day(hoy.day)
         
         respuesta = posteo.run()
         posteo.hide()
         
         if respuesta == gtk.RESPONSE_OK:
-            print "Procesando"
+            print("Procesando")
             dia = fecha.get_date()
             self.create_report_window(process.inprema(archivo.get_filename(),
                                                       date(dia[0], dia[1] + 1,

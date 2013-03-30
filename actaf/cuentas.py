@@ -28,8 +28,8 @@ scheme = 'mysql://asura:$a1ntcro$$@172.16.10.68/afiliados?charset=utf8'
 connection = connectionForURI(scheme)
 sqlhub.processConnection = connection
 
-def procesar():
-    afo = database.get_affiliates_by_payment('Escalafon')
+def escalafon():
+    afo = database.get_affiliates_by_payment(1)
     
     afiliados = dict()
     
@@ -50,6 +50,13 @@ def procesar():
             afiliado.informacionBancaria(banco, cuenta)
             print afiliado.banco, afiliado.cuenta
 
+def actualizar(linea):
+    
+    afiliado = database.get_affiliate(linea[0])
+    afiliado.cuenta = linea[2]
+
 if __name__ == "__main__":
     
-    procesar()
+    #escalafon()
+    cuentas = csv.reader(open('cuentas.csv'))
+    map(actualizar, cuentas)

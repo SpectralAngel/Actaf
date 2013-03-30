@@ -2,7 +2,7 @@
 # -*- coding: utf8 -*-
 #
 # process.py
-# Copyright 2009, 2010 by Carlos Flores <cafg10@gmail.com>
+# Copyright 2009, 2012 by Carlos Flores <cafg10@gmail.com>
 # This file is part of Actaf.
 #
 # Actaf is free software: you can redistribute it and/or modify
@@ -28,7 +28,7 @@ def start(parser, dia, inprema=True, cotizacion=2):
     """Inicia el proceso de actualización de las aportaciones utilizando la
     planilla recibida"""
     
-    print "Iniciando proceso de Actualizacion, esto puede tardar mucho tiempo"
+    print("Iniciando proceso de Actualizacion, esto puede tardar mucho tiempo")
     
     accounts = dict()
     for account in database.get_accounts():
@@ -46,8 +46,8 @@ def start(parser, dia, inprema=True, cotizacion=2):
     updater.registrar_cuenta(database.get_exceding_account(), 'excedente')
     
     # Cambiar por un par de acciones que muestren progreso
-    for income in parser.parse():
-        updater.update(income)
+    parsed = parser.parse()
+    map((lambda i: updater.update(i)), parsed)
     
     reporte = None
     if inprema:
@@ -55,7 +55,7 @@ def start(parser, dia, inprema=True, cotizacion=2):
     else:
         reporte = database.create_report(accounts, dia.year, dia.month)
     
-    print "Proceso de actualización Exitoso!"
+    print("Proceso de actualización Exitoso!")
     
     return reporte
 
@@ -66,19 +66,18 @@ def inprema(archivo, fecha):
     
     affiliates = database.get_affiliates_by_payment(2, True)
     afiliados = dict()
-
-    for a in affiliates:
     
+    for a in affiliates:
+        
         inprema = None
         try:
             inprema = int(a.escalafon)
         except Exception, e:
-            print e.message
-    
+            print("Error en afiliado {0}: {1}".format(a.id, e.message))
         afiliados[inprema] = a
-
+    
     parser = core.AnalizadorINPREMA(archivo, afiliados)
-
+    
     reporte = start(parser, fecha)
     
     return reporte
