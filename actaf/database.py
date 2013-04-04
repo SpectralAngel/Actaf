@@ -46,10 +46,10 @@ def get_affiliates_by_banco(banco, cotizacion, active_only=True):
     
     cotizacion = Cotizacion.get(cotizacion)
         
-    return Affiliate.select(Affiliate.q.banco==banco,
+    return Affiliate.select(AND(Affiliate.q.banco==banco,
 	                        Affiliate.q.cotizacion==cotizacion,
                             Affiliate.q.cuenta!=None,
-	                        active=active_only)
+	                        Affiliate.q.active==active_only))
 
 def get_all_affiliates():
     

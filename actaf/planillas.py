@@ -16,7 +16,9 @@ def escribir_banco(banco):
     map((lambda l: planilla.writerow(l)), lineas)
 
 if __name__ == "__main__":
-    with Pool() as pool:
-        
-        bancos = database.get_bancos()
-        pool.map(escribir_banco, bancos)
+    
+    pool = Pool()
+    
+    bancos = database.get_bancos()
+    pool.map(escribir_banco, bancos)
+    

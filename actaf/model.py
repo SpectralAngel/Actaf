@@ -22,6 +22,7 @@ from sqlobject import (SQLObject, UnicodeCol, StringCol, DateCol, CurrencyCol,
                        MultipleJoin, ForeignKey, IntCol, DecimalCol, BoolCol,
                        DatabaseIndex, SQLObjectNotFound, connectionForURI,
                        DateTimeCol, RelatedJoin, sqlhub)
+from sqlobject.sqlbuilder import AND
 from decimal import Decimal
 from datetime import date, datetime
 import math
