@@ -1416,6 +1416,10 @@ class Banco(SQLObject):
     nombre = UnicodeCol(length=100)
     depositable = BoolCol(default=False)
     asambleista = BoolCol(default=False)
+    parser = UnicodeCol(length=100, default=None)
+    generator = UnicodeCol(length=100, default=None)
+    cuenta = UnicodeCol(length=100, default=None)
+    codigo = UnicodeCol(length=100, default=None)
     depositos = MultipleJoin("Deposito")
     depositosAnonimos = MultipleJoin("DepositoAnonimo")
 
