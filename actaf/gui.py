@@ -2,9 +2,9 @@
 # -*- coding: utf8 -*-
 #
 # gui.py
-# This file is part of TaMan
+# This file is part of ActAf
 #
-# Copyright (C) 2009, 2010 Carlos Flores <cafg10@gmail.com>
+# Copyright (C) 2009, 2013 Carlos Flores <cafg10@gmail.com>
 #
 # TaMan is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
