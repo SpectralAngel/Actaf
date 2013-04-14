@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf8 -*-
 #
-# planillas.py
+# cobrar.py
 #
-# Copyright 2009 - 2013 by Carlos Flores <cafg10@gmail.com>
+# Copyright 2013 by Carlos Flores <cafg10@gmail.com>
 # This file is part of Actaf.
 #
 # Actaf is free software: you can redistribute it and/or modify

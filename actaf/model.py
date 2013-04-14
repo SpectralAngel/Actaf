@@ -168,6 +168,7 @@ class Affiliate(SQLObject):
     banco = IntCol(default=None)
     """Código del Banco"""
     email = UnicodeCol(default=None)
+    autorizacion = BoolCol(default=False, notNone=True)
     sobrevivencias = MultipleJoin("Sobrevivencia", joinColumn="afiliado_id")
     devoluciones = MultipleJoin("Devolucion", joinColumn="afiliado_id")
     funebres = MultipleJoin("Funebre", joinColumn="afiliado_id")
@@ -1018,6 +1019,32 @@ class Extra(SQLObject):
         
         Deduced(**kw)
     
+    def deduccion_bancaria(self, dia=date.today()):
+        
+        self.cancelar(dia)
+        self.formaPago = FormaPago.get(1)
+        
+        kw = dict()
+        kw['amount'] = self.monto
+        kw['afiliado'] = self.affiliate
+        kw['banco'] = self.affiliate.get_banco()
+        kw['account'] = self.cuenta
+        kw['month'] = dia.month
+        kw['year'] = dia.year
+        kw['day'] = self.dia
+        
+        if self.retrasada:
+            
+            cuota = self.affiliate.get_delayed()
+            month, year = (None, None)
+            if not cuota is None:
+                month = cuota.delayed()
+                year = cuota.year
+                cuota.pay_month(month)
+            kw['detail'] = "Cuota Retrasada {0} de {1}".format(month, year)
+        
+        DeduccionBancaria(**kw)
+    
     def manual(self):
         
         self.act()
@@ -1258,7 +1285,7 @@ class Solicitud(SQLObject):
         kw['months'] = self.periodo
         kw['last'] = self.entrega
         kw['startDate'] = self.entrega
-        kw['letters'] = wording.parse(self.monto).capitalize()
+        #kw['letters'] = wording.parse(self.monto).capitalize()
         kw['number'] = 0
         prestamo = Loan(**kw)
         prestamo.start()
@@ -1324,6 +1351,26 @@ class Reintegro(SQLObject):
                                             self.motivo)
         
         Deduced(**kw)
+    
+    def deduccion_bancaria(self, dia=date.today()):
+        
+        self.cancelar(dia)
+        self.formaPago = FormaPago.get(1)
+        
+        kw = dict()
+        kw['amount'] = self.monto
+        kw['afiliado'] = self.affiliate
+        kw['banco'] = self.affiliate.get_banco()
+        kw['account'] = self.cuenta
+        kw['month'] = dia.month
+        kw['year'] = dia.year
+        kw['day'] = self.dia
+        
+        kw['detail'] = "Reintegro {0} por {0}".format(
+                                            self.emision.strftime('%d/%m/%Y'),
+                                            self.motivo)
+        
+        DeduccionBancaria(**kw)
     
     def revertir(self):
         
@@ -1504,6 +1551,7 @@ class DeduccionBancaria(SQLObject):
     afiliado = ForeignKey("Affiliate")
     banco = ForeignKey("Banco")
     account = ForeignKey("Account")
+    amount = CurrencyCol()
     detail = UnicodeCol(default="")
     day = DateCol(default=date.today)
     month = IntCol(default=date.today().month)

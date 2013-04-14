@@ -110,6 +110,11 @@ def create_deduction(affiliate, amount, account, day=date.today()):
     return Deduced(affiliate=affiliate, account=account, amount=amount,
                    month=day.month, year=day.year)
 
+def create_bank_deduction(affiliate, amount, account, day=date.today()):
+    
+    return DeduccionBancaria(affiliate=affiliate, account=account, amount=amount,
+                   month=day.month, year=day.year, day=day)
+
 def create_report(accounts, year, month):
     
     report = PostReport(year=year, month=month)

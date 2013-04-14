@@ -90,8 +90,7 @@ class AnalizadorCSV(object):
         de :class:`Ingreso`"""
         
         map((lambda r: self.single(r)), self.reader)
-                
-        print self.perdidos
+        
         return self.parsed
     
     def single(self, row):
