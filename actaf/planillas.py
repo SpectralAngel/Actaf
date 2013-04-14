@@ -20,23 +20,30 @@
 # along with Actaf.  If not, see <http://www.gnu.org/licenses/>.
 
 import database
-import unicodecsv
 from multiprocessing import Pool
+import generators
+import argparse
+from datetime import datetime
 
-def escribir_banco(banco):
+def escribir_banco(parametro):
     
-    afiliados = database.get_affiliates_by_banco(banco.id, 1, True)
-    #afiliados = filter((lambda a: a.cuenta != None), afiliados)
-    
-    lineas = map((lambda a: [str(a.id), u"{0} {1}".format(a.firstName, a.lastName), a.cardID, str(a.get_monthly()), str(a.cuenta)]), afiliados)
-    lineas = filter((lambda l: l[0]!=None and l[1]!=None and l[2]!=None and l[3]!=None), lineas)
-    planilla = unicodecsv.UnicodeWriter(open(u'{0}.csv'.format(banco.nombre), 'wb'))
-    map((lambda l: planilla.writerow(l)), lineas)
+    afiliados = database.get_affiliates_by_banco(parametro[0].id, 1, True)
+    Generator = getattr(generators, parametro[0].generator)
+    generator = Generator(parametro[0], afiliados, parametro[1])
+    generator.output()
 
 if __name__ == "__main__":
     
     pool = Pool()
     
-    bancos = database.get_bancos()
-    pool.map(escribir_banco, bancos)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("fecha",
+                        help=u"Fecha en que se efectuarán los cobros")
     
+    args = parser.parse_args()
+    
+    fecha = datetime.strptime(args.fecha, "%Y%m%d").date()
+    bancos = database.get_bancos()
+    bancos = ((banco, fecha) for banco in bancos)
+    
+    pool.map(escribir_banco, bancos)

@@ -28,7 +28,7 @@ from datetime import date, datetime
 import math
 import calendar
 
-scheme = 'mysql://turboaffiliate:TQV8wUp6@172.16.10.87/afiliados?charset=utf8'
+scheme = 'mysql://turbogears:hello@127.0.0.1/afiliados?charset=utf8'
 connection = connectionForURI(scheme)
 sqlhub.processConnection = connection
 
@@ -174,6 +174,7 @@ class Affiliate(SQLObject):
     seguros = MultipleJoin("Seguro", joinColumn="afiliado_id")
     inscripciones = MultipleJoin("Inscripcion", joinColumn="afiliado_id")
     depositos = MultipleJoin("Deposito", joinColumn="afiliado_id")
+    deduccionesBancarias = MultipleJoin("DeduccionBancaria", joinColumn="afiliado_id")
     
     def tiempo(self):
         
@@ -1257,7 +1258,7 @@ class Solicitud(SQLObject):
         kw['months'] = self.periodo
         kw['last'] = self.entrega
         kw['startDate'] = self.entrega
-        #kw['letters'] = wording.parse(self.monto).capitalize()
+        kw['letters'] = wording.parse(self.monto).capitalize()
         kw['number'] = 0
         prestamo = Loan(**kw)
         prestamo.start()
@@ -1497,3 +1498,26 @@ class DepositoAnonimo(SQLObject):
     concepto = UnicodeCol(length=50)
     fecha = DateCol(default=date.today)
     monto = CurrencyCol()
+
+class DeduccionBancaria(SQLObject):
+    
+    afiliado = ForeignKey("Affiliate")
+    banco = ForeignKey("Banco")
+    account = ForeignKey("Account")
+    detail = UnicodeCol(default="")
+    day = DateCol(default=date.today)
+    month = IntCol(default=date.today().month)
+    year = IntCol(default=date.today().year)
+
+class ReporteBancario(SQLObject):
+    
+    banco = ForeignKey("Banco")
+    day = DateCol(default=date.today)
+    month = IntCol(default=date.today().month)
+    year = IntCol(default=date.today().year)
+
+class DetalleBancario(SQLObject):
+    
+    reporte = ForeignKey("ReporteBancario")
+    account = ForeignKey("Account")
+    amount = CurrencyCol()

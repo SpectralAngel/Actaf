@@ -299,10 +299,9 @@ class ReportLine(object):
     def __str__(self):
     
         total = self.amount * Decimal(100)
-        zeros = '%(#)018d' % {"#":total}
         if self.afiliado.cardID == None:
             return str()
-        return "{0}{1}{2}".format(self.afiliado.cardID.replace('-', ''), '0011', zeros)
+        return "{0}0011{1:018d}".format(self.afiliado.cardID.replace('-', ''), total)
 
 class Generador(object):
     
