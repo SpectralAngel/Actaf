@@ -22,11 +22,15 @@
 import csv
 import database
 import core
+from generators import INPREMA
 
 def extraer_cambios():
     
     affiliates = database.get_affiliates_by_payment(2, True)
     afiliados = dict()
+    
+    generator = INPREMA()
+    generator.output()
     
     for a in affiliates:
     

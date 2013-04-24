@@ -128,3 +128,27 @@ class Atlantida(Generator):
         out.close()
         out = io.open(self.banco.nombre + str(self.fecha)+".txt", 'w')
         out.writelines(charges)
+
+class INPREMA(Generator):
+    
+    def __init__(self, banco, afiliados, fecha):
+        
+        super(INPREMA, self).__init__(banco, afiliados, fecha)
+        self.format = u"{0:4d}{1:2d}{2:13d}00011{3}\n"
+    
+    def output(self):
+        
+        charges = list()
+        
+        for afiliado in self.afiliados:
+            
+            charges.append(self.format.format(
+                            self.fecha.year,
+                            self.fecha.month,
+                            afiliado.cardID.strip('-'),
+                            afiliado.get_monthly()
+                            )
+                          )
+        
+        out = io.open("inprema.txt", 'w')
+        out.writelines(charges)
