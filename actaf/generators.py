@@ -134,7 +134,7 @@ class INPREMA(Generator):
     def __init__(self, afiliados, fecha):
         
         super(INPREMA, self).__init__(None, afiliados, fecha)
-        self.format = u"{0:4d}{1:2d}{2:13d}00011{3}\n"
+        self.format = u"{0:4d}{1:2d}{2:13}00011{3}\n"
     
     def output(self):
         
