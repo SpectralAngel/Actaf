@@ -134,7 +134,7 @@ class INPREMA(Generator):
     def __init__(self, afiliados, fecha):
         
         super(INPREMA, self).__init__(None, afiliados, fecha)
-        self.format = u"{0:4d}{1:2d}{2:13}00011{3}\n"
+        self.format = u"{0:4d}{1:02d}{2:13}00011{3:013}\n"
     
     def output(self):
         
@@ -142,7 +142,8 @@ class INPREMA(Generator):
         identidad = 0
         
         for afiliado in self.afiliados:
-            if afiliado.cardID == None:
+            if afiliado.cardID == None or afiliado.cardID == '0':
+                identidad += 1
                 continue
             salida = self.format.format(
                             self.fecha.year,
@@ -151,6 +152,6 @@ class INPREMA(Generator):
                             afiliado.get_monthly()
                             )
             charges.append(salida)
-            
+        print(identidad)    
         out = io.open("inprema.txt", 'w')
         out.writelines(charges)

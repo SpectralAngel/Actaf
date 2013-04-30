@@ -67,7 +67,7 @@ def extraer_cambios():
     dexter = csv.writer(open('dexter.csv', 'w+b'))
     
     for numero in cambios:
-        print cambios[numero]
+        #print cambios[numero]
         dexter.writerow(cambios[numero].list())
 
 if __name__ == "__main__":
