@@ -148,7 +148,7 @@ class INPREMA(Generator):
             salida = self.format.format(
                             self.fecha.year,
                             self.fecha.month,
-                            afiliado.cardID.strip('-'),
+                            afiliado.cardID.replace('-', ''),
                             afiliado.get_monthly()
                             )
             charges.append(salida)
