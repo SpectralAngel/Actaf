@@ -30,7 +30,7 @@ def extraer_cambios():
     affiliates = database.get_affiliates_by_payment(2, True)
     afiliados = dict()
     
-    generator = INPREMA(afiliados, date(2013,5,1))
+    generator = INPREMA(affiliates, date(2013,5,1))
     generator.output()
     
     for a in affiliates:

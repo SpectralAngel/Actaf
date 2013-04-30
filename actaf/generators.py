@@ -139,6 +139,7 @@ class INPREMA(Generator):
     def output(self):
         
         charges = list()
+        
         for afiliado in self.afiliados:
             salida = self.format.format(
                             self.fecha.year,
@@ -146,7 +147,7 @@ class INPREMA(Generator):
                             afiliado.cardID.strip('-'),
                             afiliado.get_monthly()
                             )
-            print(salida)
             charges.append(salida)
+            
         out = io.open("inprema.txt", 'w')
         out.writelines(charges)
