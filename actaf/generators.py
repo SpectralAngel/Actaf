@@ -139,8 +139,11 @@ class INPREMA(Generator):
     def output(self):
         
         charges = list()
+        identidad = 0
         
         for afiliado in self.afiliados:
+            if afiliado.cardID == None:
+                continue
             salida = self.format.format(
                             self.fecha.year,
                             self.fecha.month,
