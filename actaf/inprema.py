@@ -23,13 +23,14 @@ import csv
 import database
 import core
 from generators import INPREMA
+from datetime import date
 
 def extraer_cambios():
     
     affiliates = database.get_affiliates_by_payment(2, True)
     afiliados = dict()
     
-    generator = INPREMA()
+    generator = INPREMA(afiliados, date(2013,5,1))
     generator.output()
     
     for a in affiliates:

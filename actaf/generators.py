@@ -131,9 +131,9 @@ class Atlantida(Generator):
 
 class INPREMA(Generator):
     
-    def __init__(self, banco, afiliados, fecha):
+    def __init__(self, afiliados, fecha):
         
-        super(INPREMA, self).__init__(banco, afiliados, fecha)
+        super(INPREMA, self).__init__(None, afiliados, fecha)
         self.format = u"{0:4d}{1:2d}{2:13d}00011{3}\n"
     
     def output(self):
