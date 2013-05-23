@@ -32,6 +32,14 @@ def escribir_banco(parametro):
     generator = Generator(parametro[0], afiliados, parametro[1])
     generator.output()
 
+class BancoProxy(object):
+    
+    nombre = "General"
+    
+    def __init__(self):
+        
+        self.nombre = "General"
+
 if __name__ == "__main__":
     
     pool = Pool()
@@ -47,3 +55,6 @@ if __name__ == "__main__":
     bancos = ((banco, fecha) for banco in bancos)
     
     pool.map(escribir_banco, bancos)
+    
+    generator = generators.Generator(BancoProxy, database.get_affiliates_by_payment(1, True), fecha)
+    generator.output()

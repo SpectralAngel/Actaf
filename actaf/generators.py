@@ -19,6 +19,7 @@
 
 import unicodecsv
 from decimal import Decimal
+import model
 import io
 
 class Generator(object):
@@ -46,8 +47,8 @@ class Occidente(Generator):
     def __init__(self, banco, afiliados, fecha):
         
         super(Occidente, self).__init__(banco, afiliados, fecha)
-        self.format = u"{0:012d}{1:<18}{2:12d}{3:30}{4:20}{5:04d}{6:02d}"
-        self.format += u"{7:02d}{8:013d}1\n"
+        self.format = u"{0:012d}{1:18}{2:12d}{3:<30}{4:<20}{5:04d}{6:02d}"
+        self.format += u"{7:02d}{8:013d} \n"
     
     def output(self):
         
@@ -57,7 +58,7 @@ class Occidente(Generator):
             
             charges.append(self.format.format(
                             0,#int(self.banco.cuenta),
-                            0,#int(self.banco.codigo),
+                            " ",#int(self.banco.codigo),
                             int(afiliado.cuenta),
                             afiliado.cardID,
                             afiliado.id,
@@ -115,12 +116,6 @@ class Atlantida(Generator):
                 afiliado.cardID,
                 afiliado.email,
                 u"LPS",
-                u"{0} {1}".format(afiliado.firstName, afiliado.lastName),
-                afiliado.cuenta,
-                afiliado.phone,
-                u"TJ",
-                3,
-                u""
             ))
         
         out = io.open(self.banco.nombre + "c" + str(self.fecha)+".txt", 'w')
@@ -155,3 +150,15 @@ class INPREMA(Generator):
         print(identidad)    
         out = io.open("inprema.txt", 'w')
         out.writelines(charges)
+
+class Banhcafe(Generator):
+    
+    def __init__(self, banco, afiliados, fecha):
+        
+        super(Banhcafe, self).__init__(banco, afiliados, fecha)
+    
+    def output(self):
+        
+        for afiliado in self.afiliados:
+            model.CobroBancarioBanhcafe(cantidad=afiliado.get_monthly(),
+                                        identidad=afiliado.cardID.replace('-', ''))

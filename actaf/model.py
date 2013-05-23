@@ -28,7 +28,7 @@ from datetime import date, datetime
 import math
 import calendar
 
-scheme = 'mysql://turbogears:hello@127.0.0.1/afiliados?charset=utf8'
+scheme = 'mysql://turboaffiliate:TQV8wUp6@localhost/afiliados?charset=utf8'
 connection = connectionForURI(scheme)
 sqlhub.processConnection = connection
 
@@ -201,7 +201,6 @@ class Affiliate(SQLObject):
         """Obtiene el pago mensual que debe efectuar el afiliado"""
         
         extras = sum(e.amount for e in self.extras)
-        loans = Decimal(0)
         #loans = sum(l.get_payment() for l in self.loans)
         #reintegros = sum(r.monto for r in self.reintegros if not r.pagado)
         reintegros = Decimal(0)
@@ -210,13 +209,7 @@ class Affiliate(SQLObject):
                 break
             reintegros += reintegro.monto
         
-        # Cobrar solo el primer préstamo
-        for loan in self.loans:
-            
-            loans = loan.get_payment()
-            break
-        
-        return extras + loans + reintegros + self.get_cuota()
+        return extras + self.get_prestamo() + reintegros + self.get_cuota()
     
     def get_cuota(self, hoy=date.today()):
         
@@ -233,6 +226,19 @@ class Affiliate(SQLObject):
                           if self.cotizacion.jubilados)
         
         return obligation
+    
+    def get_prestamo(self):
+        
+        loans = Decimal(0)
+        if self.autorizacion or self.cotizacion.jubilados:
+            
+            # Cobrar solo el primer préstamo
+            for loan in self.loans:
+                
+                loans = loan.get_payment()
+                break
+        
+        return loans
     
     def populate(self, year):
         
@@ -1569,3 +1575,29 @@ class DetalleBancario(SQLObject):
     reporte = ForeignKey("ReporteBancario")
     account = ForeignKey("Account")
     amount = CurrencyCol()
+
+class CobroBancarioBanhcafe(SQLObject):
+    
+    identidad = UnicodeCol(length=13)
+    cantidad = CurrencyCol()
+    consumido = BoolCol(default=False)
+
+class PagoBancarioBanhcafe(SQLObject):
+    
+    identidad = UnicodeCol(length=13)
+    cantidad = CurrencyCol()
+    aplicado = DateTimeCol(default=datetime.now)
+    referencia = IntCol()
+    agencia = IntCol()
+    cajero = UnicodeCol(length=10)
+    terminal = UnicodeCol(length=1)
+    aplicado = BoolCol(default=False)
+
+class ReversionBancariaBanhcafe():
+    
+    fecha = DateTimeCol(default=datetime.now)
+    referencia = IntCol()
+    agencia = IntCol()
+    cajero = UnicodeCol(length=10)
+    terminal = UnicodeCol(length=10)
+    cajero = UnicodeCol(length=10)
