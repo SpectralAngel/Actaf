@@ -28,7 +28,7 @@ from datetime import date, datetime
 import math
 import calendar
 
-scheme = 'mysql://turboaffiliate:TQV8wUp6@localhost/afiliados?charset=utf8'
+scheme = 'mysql://turboaffiliate:TQV8wUp6@172.16.10.87/afiliados?charset=utf8'
 connection = connectionForURI(scheme)
 sqlhub.processConnection = connection
 
@@ -196,7 +196,7 @@ class Affiliate(SQLObject):
         
         return Banco.get(self.banco)
     
-    def get_monthly(self):
+    def get_monthly(self, day=date.today()):
         
         """Obtiene el pago mensual que debe efectuar el afiliado"""
         
@@ -209,14 +209,14 @@ class Affiliate(SQLObject):
                 break
             reintegros += reintegro.monto
         
-        return extras + self.get_prestamo() + reintegros + self.get_cuota()
+        return extras + self.get_prestamo() + reintegros + self.get_cuota(day)
     
-    def get_cuota(self, hoy=date.today()):
+    def get_cuota(self, day=date.today()):
         
         """Obtiene la cuota de aportación que el :class:`Affiliate` debera pagar
         en el mes actual"""
         
-        obligations = Obligation.selectBy(month=hoy.month, year=hoy.year)
+        obligations = Obligation.selectBy(month=day.month, year=day.year)
         
         obligation = Decimal(0)
         obligation += sum(o.amount for o in obligations
@@ -340,6 +340,24 @@ class Affiliate(SQLObject):
     def get_age(self):
         
         return (date.today() - self.birthday).days / 365
+    
+    def get_phone(self):
+        
+        if self.phone != None:
+            phone = self.phone.replace('-', '').replace('/', '')
+            if len(phone) > 11:
+                return phone[:11]
+            return phone
+        
+        return ""
+    
+    def get_email(self):
+        
+        if self.email != None:
+            
+            return self.email
+        
+        return ""
 
 class CuentaRetrasada(SQLObject):
     
