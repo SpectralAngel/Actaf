@@ -26,20 +26,37 @@ class Generator(object):
     
     def __init__(self, banco, afiliados, fecha):
         
-        self.afiliados = afiliados
+        self.afiliados = filter((lambda a: a.cardID !=None and a.firstName!=None and a.lastName!=None),
+                                afiliados)
         self.fecha = fecha
         self.banco = banco
     
     def output(self):
-        
+        print(self.banco.nombre)
         line = ([str(a.id),
                  u"{0} {1}".format(a.firstName,a.lastName),
                  a.cardID,
-                 str(a.get_monthly()),
+                 str(a.get_monthly(self.fecha)),
                  str(a.cuenta)] for a in self.afiliados)
         line = filter((lambda l: l[0]!=None and l[1]!=None and l[2]!=None and l[3]!=None),
                       line)
         planilla = unicodecsv.UnicodeWriter(open(u'{0}.csv'.format(self.banco.nombre+str(self.fecha)), 'wb'))
+        map((lambda l: planilla.writerow(l)), line)
+    
+    def davivienda(self):
+        
+        line = ([str(a.id),
+                 a.cardID.replace('-', ''),
+                 u"{0} {1}".format(a.firstName,a.lastName),
+                 str(a.get_monthly(self.fecha)),
+                 str(0),
+                 str(0),
+                 str(a.get_monthly()),
+                 ]
+        for a in self.afiliados)
+        line = filter((lambda l: l[0]!=None and l[1]!=None and l[2]!=None and l[3]!=None),
+                      line)
+        planilla = unicodecsv.UnicodeWriter(open(u'COPEMH.csv', 'wb'))
         map((lambda l: planilla.writerow(l)), line)
 
 class Occidente(Generator):
@@ -57,8 +74,8 @@ class Occidente(Generator):
         for afiliado in self.afiliados:
             
             charges.append(self.format.format(
-                            0,#int(self.banco.cuenta),
-                            " ",#int(self.banco.codigo),
+                            int(self.banco.cuenta),
+                            int(self.banco.codigo),
                             int(afiliado.cuenta),
                             afiliado.cardID,
                             afiliado.id,
@@ -77,51 +94,56 @@ class Atlantida(Generator):
     def __init__(self, banco, afiliados, fecha):
         
         super(Atlantida, self).__init__(banco, afiliados, fecha)
-        self.cformat = u"{0:16}{1:2}{2:1}{3:5d}{4:8}{5:15}{6:40}"
-        self.cformat += u"{7:3}{8:40}{9:19}{10:8}{11:2}{12:03d}{13:16}\n"
+        self.cformat = u"{0:<16}{1:2}{2:1}{3:05d}{4:8}{5:15}{6:40}"
+        self.cformat += u"{7:3}{8:40}{9:19}{10:12}{11:2}{12:03d}{13:16}\n"
         
-        self.format = u"{0:05d}{1:16}{2:16}{3:03d}{4:016d}{5:3}{6:40}"
-        self.format += u"{7:9}{8:9}\n"
+        self.format = u"{0:05d}{1:<16}{2:<16}{3:03d}{4:016d}{5:3}{6:<40}"
+        self.format += u"{7:<9}{8:<9}\n"
     
     def output(self):
         
+        print(self.banco.nombre)
         clients = list()
         charges = list()
         
         for afiliado in self.afiliados:
-            
+            if not afiliado.autorizacion:
+                continue
+            nombre_afiliado = u"{0} {1}".format(afiliado.firstName, afiliado.lastName)
+            if len(nombre_afiliado) > 40:
+                nombre_afiliado = nombre_afiliado[:39] 
             clients.append(self.cformat.format(
                 afiliado.id,
                 u"01",
                 u"A",
-                5,
+                int(self.banco.codigo),
                 self.fecha.strftime("%Y%m%d"),
                 afiliado.cardID,
-                afiliado.email,
-                "LPS",
-                u"{0} {1}".format(afiliado.firstName, afiliado.lastName),
+                afiliado.get_email(),
+                u"LPS",
+                nombre_afiliado,
                 afiliado.cuenta,
-                afiliado.phone,
-                u"TJ",
+                afiliado.get_phone(),
+                u"AH",
                 3,
                 u""
             ))
             charges.append(self.format.format(
-                5,
+                int(self.banco.codigo),
                 afiliado.id,
                 u"",
                 1,
-                int(afiliado.get_monthly() * Decimal("100")),
-                self.fecha.strftime("%Y%m%d"),
-                afiliado.cardID,
-                afiliado.email,
+                int(afiliado.get_monthly(self.fecha) * Decimal("100")),
                 u"LPS",
+                u"Cuota de Aportaciones",
+                self.fecha.strftime("%Y%m%d"),
+                u'',
             ))
         
-        out = io.open(self.banco.nombre + "c" + str(self.fecha)+".txt", 'w')
+        out = io.open(self.banco.nombre + "clientes" + str(self.fecha)+".txt", 'w')
         out.writelines(clients)
         out.close()
-        out = io.open(self.banco.nombre + str(self.fecha)+".txt", 'w')
+        out = io.open(self.banco.nombre + str(self.fecha)+"-debito.txt", 'w')
         out.writelines(charges)
 
 class INPREMA(Generator):
@@ -144,10 +166,10 @@ class INPREMA(Generator):
                             self.fecha.year,
                             self.fecha.month,
                             afiliado.cardID.replace('-', ''),
-                            afiliado.get_monthly()
+                            afiliado.get_monthly(self.fecha)
                             )
             charges.append(salida)
-        print(identidad)    
+        
         out = io.open("inprema.txt", 'w')
         out.writelines(charges)
 
@@ -159,6 +181,43 @@ class Banhcafe(Generator):
     
     def output(self):
         
+        model.CobroBancarioBanhcafe.clearTable()
         for afiliado in self.afiliados:
             model.CobroBancarioBanhcafe(cantidad=afiliado.get_monthly(),
                                         identidad=afiliado.cardID.replace('-', ''))
+        
+        super(Banhcafe, self).output()
+            
+
+class DaVivienda(Generator):
+    
+    def __init__(self, banco, afiliados, fecha):
+        
+        super(DaVivienda, self).__init__(banco, afiliados, fecha)
+        
+    def output(self):
+        
+        print(self.banco.nombre)
+        
+        self.davivienda()
+
+class Pais(Generator):
+    
+    def __init__(self, banco, afiliados, fecha):
+        
+        super(Pais, self).__init__(banco, afiliados, fecha)
+    
+    def output(self):
+        
+        print(self.banco.nombre)
+        line = ([str(a.id),
+                 a.firstName,
+                 a.lastName,
+                 a.cardID,
+                 str(a.get_monthly(self.fecha)),
+                 str(a.cuenta)] for a in self.afiliados)
+        
+        line = filter((lambda l: l[0]!=None and l[1]!=None and l[2]!=None and l[3]!=None),
+                      line)
+        planilla = unicodecsv.UnicodeWriter(open(u'{0}.csv'.format(self.banco.nombre+str(self.fecha)), 'wb'))
+        map((lambda l: planilla.writerow(l)), line)
