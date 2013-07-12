@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 #
 # process.py
-# Copyright 2009 - 2012 by Carlos Flores <cafg10@gmail.com>
+# Copyright 2009 - 2013 by Carlos Flores <cafg10@gmail.com>
 # This file is part of Actaf.
 #
 # Actaf is free software: you can redistribute it and/or modify
@@ -18,9 +18,11 @@
 # along with Actaf.  If not, see <http://www.gnu.org/licenses/>.
 
 from decimal import Decimal
+from datetime import datetime
 
 import database
 import core
+import argparse
 
 def start(parser, dia, inprema=True, cotizacion=2):
     
@@ -36,8 +38,8 @@ def start(parser, dia, inprema=True, cotizacion=2):
         accounts[account]['number'] = 0
         accounts[account]['amount'] = Decimal(0)
     
-    updater = core.Actualizador(database.get_obligation(dia.year, dia.month, inprema),
-                            accounts, dia)
+    updater = core.Actualizador(database.get_obligation(dia.year, dia.month,
+                                                        inprema), accounts, dia)
     
     updater.registrar_cuenta(database.get_loan_account(), 'prestamo')
     updater.registrar_cuenta(database.get_cuota_account(), 'cuota')
@@ -50,7 +52,8 @@ def start(parser, dia, inprema=True, cotizacion=2):
     
     reporte = None
     if inprema:
-        reporte = database.create_other_report(accounts, dia.year, dia.month, cotizacion)
+        reporte = database.create_other_report(accounts, dia.year, dia.month,
+                                               cotizacion)
     else:
         reporte = database.create_report(accounts, dia.year, dia.month)
     
@@ -64,6 +67,7 @@ def inprema(archivo, fecha):
     INPREMA"""
     
     affiliates = database.get_affiliates_by_payment(2, True)
+    print(affiliates.count())
     afiliados = dict()
     
     for a in affiliates:
@@ -80,3 +84,13 @@ def inprema(archivo, fecha):
     reporte = start(parser, fecha)
     
     return reporte
+
+if __name__ == "__main__":
+    
+    parser = argparse.ArgumentParser()
+    parser.add_argument("fecha",
+                        help=u"Fecha en que se efectuarán los cobros")
+    args = parser.parse_args()
+    fecha = datetime.strptime(args.fecha, "%Y%m%d").date()
+    
+    inprema("inprema.csv", fecha)

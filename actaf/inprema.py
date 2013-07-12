@@ -23,14 +23,15 @@ import csv
 import database
 import core
 from generators import INPREMA
-from datetime import date
+from datetime import date, datetime
+import argparse
 
-def extraer_cambios():
+def extraer_cambios(fecha):
     
     affiliates = database.get_affiliates_by_payment(2, True)
     afiliados = dict()
     
-    generator = INPREMA(affiliates, date(2013,5,1))
+    generator = INPREMA(affiliates, fecha)
     generator.output()
     
     for a in affiliates:
@@ -71,5 +72,11 @@ def extraer_cambios():
         dexter.writerow(cambios[numero].list())
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("fecha",
+                        help=u"Fecha en que se efectuarán los cobros")
     
-    extraer_cambios()
+    args = parser.parse_args()
+    
+    fecha = datetime.strptime(args.fecha, "%Y%m%d").date()
+    extraer_cambios(fecha)
