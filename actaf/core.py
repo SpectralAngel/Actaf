@@ -136,7 +136,7 @@ class AnalizadorINPREMA(object):
         
         except:
             self.perdidos += 1
-            print("Error de parseo no se encontro la identidad {0}".format(cobro))
+            #print("Error de parseo no se encontro la identidad {0}".format(cobro))
 
 class Actualizador(object):
     

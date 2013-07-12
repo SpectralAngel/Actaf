@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf8 -*-
 #
-# retrasada.py
+# comasol.py
 #
 # Copyright 2012 by Carlos Flores <cafg10@gmail.com>
 # This file is part of Actaf.
