@@ -56,5 +56,7 @@ if __name__ == "__main__":
     
     pool.map(escribir_banco, bancos)
     
-    generator = generators.Generator(BancoProxy, database.get_affiliates_by_payment(1, True), fecha)
+    afiliados = database.get_affiliates_by_payment(1, True)
+    generator = generators.Generator(BancoProxy, afiliados, fecha)
     generator.output()
+    generator.davivienda()
