@@ -214,10 +214,10 @@ class Pais(Generator):
         print(self.banco.nombre)
         line = ([str(a.id),
                  a.cardID,
-                 u"{0} {1}".format(a.firstName,a.lastName),
-                 str(a.cuenta)],
+                 u"{0} {1}".format(a.firstName, a.lastName),
+                 str(a.cuenta),
                  str(a.get_monthly(self.fecha)),
-                 a.email for a in self.afiliados)
+                 a.get_email()] for a in self.afiliados)
         
         line = filter((lambda l: l[0]!=None and l[1]!=None and l[2]!=None and l[3]!=None),
                       line)

@@ -27,7 +27,7 @@ from datetime import datetime
 
 def escribir_banco(parametro):
     
-    afiliados = database.get_affiliates_by_banco(parametro[0].id, 1, True)
+    afiliados = database.get_affiliates_by_banco(parametro[0], 1, True)
     Generator = getattr(generators, parametro[0].generator)
     generator = Generator(parametro[0], afiliados, parametro[1])
     generator.output()
