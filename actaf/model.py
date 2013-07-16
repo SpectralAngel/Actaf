@@ -230,13 +230,11 @@ class Affiliate(SQLObject):
     def get_prestamo(self):
         
         loans = Decimal(0)
-        if self.autorizacion or self.cotizacion.jubilados:
+        # Cobrar solo el primer préstamo
+        for loan in self.loans:
             
-            # Cobrar solo el primer préstamo
-            for loan in self.loans:
-                
-                loans = loan.get_payment()
-                break
+            loans = loan.get_payment()
+            break
         
         return loans
     
@@ -1008,11 +1006,16 @@ class Extra(SQLObject):
     mes = IntCol(default=None)
     anio = IntCol(default=None)
     
-    def act(self, decrementar=True, day=date.today()):
+    def act(self, decrementar=True, day=date.today(), banco=False):
         
         """Registra que la deducción se efectuó y disminuye la cantidad"""
         
-        self.to_deduced(day=day)
+        
+        if banco:
+            self.deduccion_bancaria(day)
+        else:
+            self.to_deduced(day=day)
+        
         if decrementar and self.months == 1:
             self.destroySelf()
         if decrementar:
@@ -1045,17 +1048,14 @@ class Extra(SQLObject):
     
     def deduccion_bancaria(self, dia=date.today()):
         
-        self.cancelar(dia)
-        self.formaPago = FormaPago.get(1)
-        
         kw = dict()
-        kw['amount'] = self.monto
+        kw['amount'] = self.amount
         kw['afiliado'] = self.affiliate
         kw['banco'] = self.affiliate.get_banco()
-        kw['account'] = self.cuenta
+        kw['account'] = self.account
         kw['month'] = dia.month
         kw['year'] = dia.year
-        kw['day'] = self.dia
+        kw['day'] = dia
         
         if self.retrasada:
             
@@ -1388,7 +1388,7 @@ class Reintegro(SQLObject):
         kw['account'] = self.cuenta
         kw['month'] = dia.month
         kw['year'] = dia.year
-        kw['day'] = self.dia
+        kw['day'] = dia
         
         kw['detail'] = "Reintegro {0} por {0}".format(
                                             self.emision.strftime('%d/%m/%Y'),

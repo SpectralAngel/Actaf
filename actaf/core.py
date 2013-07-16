@@ -76,10 +76,10 @@ class AnalizadorCSV(object):
         
         self.reader = csv.reader(open(filename))
         self.affiliates = dict()
+        affiliates = filter((lambda a: a.cardID != None), affiliates)
         for a in affiliates:
-            if a.cardID == None:
-                continue
             self.affiliates[a.cardID.replace('-', '')] = a
+        
         self.parsed = list()
         self.perdidos = 0
     
@@ -95,8 +95,8 @@ class AnalizadorCSV(object):
     
     def single(self, row):
         
-        amount = Decimal(row[2])
-        identidad = row[0]
+        amount = Decimal(row[2].replace(',', ''))
+        identidad = '{0:013d}'.format(int(row[0].replace('-', '')))
         try:
             self.parsed.append(Ingreso(self.affiliates[identidad], amount))
         

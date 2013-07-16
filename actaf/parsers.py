@@ -28,11 +28,12 @@ class Actualizador(object):
     :class:`Ingreso` registrando los motivos por los cuales se efectuó un
     determinado cobro"""
     
-    def __init__(self, obligacion, accounts, day):
+    def __init__(self, obligacion, accounts, day, banco):
         
         self.obligacion = obligacion
         self.cuentas = accounts
         self.day = day
+        self.banco = banco
         self.registro = dict()
     
     def registrar_cuenta(self, account, name):
@@ -66,7 +67,9 @@ class Actualizador(object):
             #afiliado = database.get_affiliate(ingreso.afiliado.id)
             ingreso.afiliado.pay_cuota(self.day.year, self.day.month)
             ingreso.cantidad -= self.obligacion
-            database.create_bank_deduction(ingreso.afiliado, self.obligacion, self.registro['cuota'], self.day)
+            database.create_bank_deduction(ingreso.afiliado, self.obligacion,
+                                           self.registro['cuota'], self.banco,
+                                           self.day)
     
     def reintegros(self, reintegro, ingreso):
         
@@ -77,7 +80,7 @@ class Actualizador(object):
             ingreso.cantidad -= reintegro.monto
             self.cuentas[reintegro.cuenta]['amount'] += reintegro.monto
             self.cuentas[reintegro.cuenta]['number'] += 1
-            reintegro.deduccion(self.day)
+            reintegro.deduccion_bancaria(self.day)
     
     def procesar_extra(self, extra, ingreso, disminuir=False):
         
@@ -91,7 +94,7 @@ class Actualizador(object):
         
         self.cuentas[extra.account]['amount'] += extra.amount
         self.cuentas[extra.account]['number'] += 1
-        extra.act(True, self.day)
+        extra.act(True, self.day, True)
     
     def extra(self, ingreso):
         
@@ -116,7 +119,8 @@ class Actualizador(object):
         self.cuentas[self.registro['excedente']]['amount'] += ingreso.cantidad
         self.cuentas[self.registro['excedente']]['number'] += 1
         database.create_bank_deduction(ingreso.afiliado, ingreso.cantidad,
-                                       self.registro['excedente'], self.day)
+                                       self.registro['excedente'], self.banco,
+                                       self.day)
     
     def prestamo(self, prestamo, ingreso):
         

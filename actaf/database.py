@@ -43,11 +43,11 @@ def get_affiliates_by_payment(payment, active_only=False):
     return Affiliate.select(AND(Affiliate.q.otizacion==cotizacion,
                                 Affiliate.q.cardID!=None))
 
-def get_affiliates_by_banco(banco, cotizacion, active_only=True):
+def get_affiliates_by_banco(banco, cotizacion=1, active_only=True):
     
     cotizacion = Cotizacion.get(cotizacion)
         
-    return Affiliate.select(AND(Affiliate.q.banco==banco,
+    return Affiliate.select(AND(Affiliate.q.banco==banco.id,
 	                        Affiliate.q.cotizacion==cotizacion,
                             Affiliate.q.cuenta!=None,
                             Affiliate.q.cuenta!="",
@@ -111,10 +111,10 @@ def create_deduction(affiliate, amount, account, day=date.today()):
     return Deduced(affiliate=affiliate, account=account, amount=amount,
                    month=day.month, year=day.year)
 
-def create_bank_deduction(affiliate, amount, account, day=date.today()):
+def create_bank_deduction(affiliate, amount, account, banco, day=date.today()):
     
-    return DeduccionBancaria(affiliate=affiliate, account=account, amount=amount,
-                   month=day.month, year=day.year, day=day)
+    return DeduccionBancaria(afiliado=affiliate, account=account, amount=amount,
+                   month=day.month, year=day.year, day=day, banco=banco)
 
 def create_report(accounts, year, month):
     

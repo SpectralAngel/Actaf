@@ -45,11 +45,12 @@ if __name__ == "__main__":
         accounts[account]['number'] = 0
         accounts[account]['amount'] = Decimal(0)
     
-    parser = getattr(parsers, banco.parser)
+    Parser = getattr(parsers, banco.parser)
+    parser = Parser(fecha, archivo, banco)
     parsed = parser.output()
     
     updater = parsers.Actualizador(database.get_obligation(fecha.year, fecha.month),
-                            accounts, fecha)
+                            accounts, fecha, banco)
     
     updater.registrar_cuenta(database.get_loan_account(), 'prestamo')
     updater.registrar_cuenta(database.get_cuota_account(), 'cuota')
