@@ -21,6 +21,7 @@ import unicodecsv
 from decimal import Decimal
 import model
 import io
+from datetime import date
 
 class Generator(object):
     
@@ -66,6 +67,7 @@ class Occidente(Generator):
         super(Occidente, self).__init__(banco, afiliados, fecha)
         self.format = u"{0:012d}{1:18}{2:12d}{3:<30}{4:<20}{5:04d}{6:02d}"
         self.format += u"{7:02d}{8:013d} \n"
+        self.fecha = date(self.fecha.year, self.fecha.month + 3, self.fecha.day)
     
     def output(self):
         
@@ -211,11 +213,11 @@ class Pais(Generator):
         
         print(self.banco.nombre)
         line = ([str(a.id),
-                 a.firstName,
-                 a.lastName,
                  a.cardID,
+                 u"{0} {1}".format(a.firstName,a.lastName),
+                 str(a.cuenta)],
                  str(a.get_monthly(self.fecha)),
-                 str(a.cuenta)] for a in self.afiliados)
+                 a.email for a in self.afiliados)
         
         line = filter((lambda l: l[0]!=None and l[1]!=None and l[2]!=None and l[3]!=None),
                       line)
