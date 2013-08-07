@@ -160,11 +160,11 @@ class Parser(object):
         self.archivo = archivo
         self.fecha = fecha
         self.banco = banco
+        self.afiliados = database.get_affiliates_by_banco(self.banco)
     
     def output(self):
         
-        self.analizador = core.AnalizadorCSV(self.archivo,
-                                database.get_affiliates_by_banco(self.banco))
+        self.analizador = core.AnalizadorCSV(self.archivo, self.afiliados)
         return self.analizador.parse()
 
 class Occidente(Parser):
@@ -176,3 +176,14 @@ class Occidente(Parser):
     def output(self):
         
         return super(Occidente, self).output()
+
+class Atlantida(Parser):
+    
+    def __init__(self, fecha, archivo, banco):
+        
+        super(Occidente, self).__init__(fecha, archivo, banco)
+    
+    def output(self):
+        
+        self.analizador = core.AnalizadorCSV(self.archivo, self.afiliados, True)
+        return self.analizador.parse()
