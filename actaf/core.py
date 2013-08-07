@@ -99,9 +99,8 @@ class AnalizadorCSV(object):
         amount = Decimal(row[2].replace(',', ''))
         afiliado = None
         if self.byID:
-            try:
-                afiliado = database.get_affiliate(int(row[0]))
-            except:
+            afiliado = database.get_affiliate(int(row[0]))
+            if not afiliado:
                 self.perdidos += 1
                 print("Error de parseo no se encontro la identidad {0}".format(row[0]))
         else:

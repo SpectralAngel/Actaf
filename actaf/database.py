@@ -26,9 +26,12 @@ def obtener_conexion():
 
 def get_affiliate(afiliacion):
     
-    """Obtiene un afiliado por número de afiliación""" 
-    
-    return Affiliate.get(afiliacion)
+    """Obtiene un afiliado por número de afiliación"""
+     
+    try:
+        return Affiliate.get(afiliacion)
+    except:
+        return None
 
 def get_loan(prestamo):
     
