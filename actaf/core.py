@@ -72,16 +72,17 @@ def distribuir(line):
 
 class AnalizadorCSV(object):
     
-    def __init__(self, filename, affiliates):
+    def __init__(self, filename, affiliates, byID=False):
         
         self.reader = csv.reader(open(filename))
         self.affiliates = dict()
-        affiliates = filter((lambda a: a.cardID != None), affiliates)
-        for a in affiliates:
-            self.affiliates[a.cardID.replace('-', '')] = a
-        
         self.parsed = list()
         self.perdidos = 0
+        self.byID = byID
+        if not byID:
+            affiliates = filter((lambda a: a.cardID != None), affiliates)
+            for a in affiliates:
+                self.affiliates[a.cardID.replace('-', '')] = a
     
     def parse(self):
         
@@ -96,12 +97,22 @@ class AnalizadorCSV(object):
     def single(self, row):
         
         amount = Decimal(row[2].replace(',', ''))
-        identidad = '{0:013d}'.format(int(row[0].replace('-', '')))
-        if not identidad in self.affiliates:
-            self.perdidos += 1
-            print("Error de parseo no se encontro la identidad {0}".format(identidad))
+        afiliado = None
+        if self.byID:
+            try:
+                afiliado = database.get_affiliate(int(row[0]))
+            except:
+                self.perdidos += 1
+                print("Error de parseo no se encontro la identidad {0}".format(row[0]))
         else:
-            self.parsed.append(Ingreso(self.affiliates[identidad], amount))
+            identidad = '{0:013d}'.format(int(row[0].replace('-', '')))
+            if not identidad in self.affiliates:
+                self.perdidos += 1
+                print("Error de parseo no se encontro la identidad {0}".format(identidad))
+            else:
+                afiliado = self.affiliates[identidad]
+        if afiliado:
+            self.parsed.append(Ingreso(afiliado, amount))
 
 class AnalizadorINPREMA(object):
     
