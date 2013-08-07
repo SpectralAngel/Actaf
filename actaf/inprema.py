@@ -47,8 +47,9 @@ def extraer_cambios(fecha):
     cambios = dict()
     for afiliado in afiliados:
         a = afiliados[afiliado]
-        cambios[afiliado] = core.Extraccion(a, a.get_monthly())
+        cambios[afiliado] = core.Extraccion(a, a.get_monthly(), fecha)
         if not a.active:
+            print(afiliado.id)
             cambios[afiliado].cantidad = 0
             cambios[afiliado].marca = 'C'
     

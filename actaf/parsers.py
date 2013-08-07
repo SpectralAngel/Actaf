@@ -140,7 +140,8 @@ class Actualizador(object):
             self.cuentas[self.registro['prestamo']]['number'] += 1
             ingreso.cantidad -= payment
             database.create_bank_deduction(ingreso.afiliado, payment,
-                                           self.registro['prestamo'], self.day)
+                                           self.registro['prestamo'],
+                                           self.banco, self.day)
         # Cobrar lo que queda en las deducciones y marcalo como cuota incompleta
         # de prestamo
         else:
@@ -148,7 +149,8 @@ class Actualizador(object):
             self.cuentas[self.registro['incomplete']]['amount'] += ingreso.cantidad
             self.cuentas[self.registro['incomplete']]['number'] += 1
             database.create_bank_deduction(ingreso.afiliado, ingreso.cantidad,
-                                           self.registro['incomplete'], self.day)
+                                           self.registro['incomplete'],
+                                           self.banco, self.day)
             ingreso.cantidad = 0
 
 class Parser(object):
@@ -169,26 +171,8 @@ class Occidente(Parser):
     
     def __init__(self, fecha, archivo, banco):
         
-        super(Occidente, self).__init__(self, fecha, archivo, banco)
-        self.file = open(archivo)
-        affiliates = database.get_affiliates_by_banco(self.banco)
-        
-        self.affiliates = dict()
-        for a in affiliates:
-            if a.cardID == None:
-                continue
-            self.affiliates[a.cardID.replace('-', '')] = a
+        super(Occidente, self).__init__(fecha, archivo, banco)
     
     def output(self):
         
-        charges = list()
-        
-        for line in self.archivo:
-            
-            identidad = line[119:149]
-            valor = Decimal(line[169:181])
-            fecha = date(int(line[29:33]), int(line[33:34]), int(line[35:36]))
-            
-            charges.append(core.Ingreso(self.affiliates[identidad], valor))
-        
-        return charges
+        return super(Occidente, self).output()

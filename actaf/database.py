@@ -38,7 +38,7 @@ def get_affiliates_by_payment(payment, active_only=False):
     
     cotizacion = Cotizacion.get(payment)
     if active_only:
-        return Affiliate.selectBy(cotizacion=cotizacion, active=True)
+        return Affiliate.selectBy(cotizacion=cotizacion, active=active_only)
     
     return Affiliate.select(AND(Affiliate.q.otizacion==cotizacion,
                                 Affiliate.q.cardID!=None))

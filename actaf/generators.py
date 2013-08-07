@@ -18,7 +18,7 @@
 # along with Actaf.  If not, see <http://www.gnu.org/licenses/>.
 
 import unicodecsv
-from decimal import Decimal
+from decimal import Decimal, ROUND_DOWN
 import model
 import io
 from datetime import date
@@ -119,7 +119,7 @@ class Atlantida(Generator):
                 u"01",
                 u"A",
                 int(self.banco.codigo),
-                self.fecha.strftime("%Y%m%d"),
+                0,
                 afiliado.cardID,
                 afiliado.get_email(),
                 u"LPS",
@@ -127,7 +127,7 @@ class Atlantida(Generator):
                 afiliado.cuenta,
                 afiliado.get_phone(),
                 u"AH",
-                3,
+                1,
                 u""
             ))
             charges.append(self.format.format(
@@ -138,7 +138,7 @@ class Atlantida(Generator):
                 int(afiliado.get_monthly(self.fecha) * Decimal("100")),
                 u"LPS",
                 u"Cuota de Aportaciones",
-                self.fecha.strftime("%Y%m%d"),
+                u'',
                 u'',
             ))
         
@@ -223,3 +223,64 @@ class Pais(Generator):
                       line)
         planilla = unicodecsv.UnicodeWriter(open(u'{0}.csv'.format(self.banco.nombre+str(self.fecha)), 'wb'))
         map((lambda l: planilla.writerow(l)), line)
+
+class Ficensa(Generator):
+    
+    def __init__(self, banco, afiliados, fecha):
+        
+        super(Ficensa, self).__init__(banco, afiliados, fecha)
+        self.format = u"{0}APO{1:13}{2:8d}{3:<40}{4:<20}{5:08d} {6:015d}"
+    
+    def output(self):
+        
+        charges = list()
+        
+        for afiliado in self.afiliados:
+            
+            nombre_afiliado = u"{0} {1}".format(afiliado.firstName, afiliado.lastName)
+            if len(nombre_afiliado) > 40:
+                nombre_afiliado = nombre_afiliado[:39]
+            
+            charges.append(self.format.format(
+                            self.fecha.strftime("%Y%m%d"),
+                            afiliado.cardID.replace('-', ''),
+                            int(afiliado.get_monthly() * Decimal("100")),
+                            nombre_afiliado,
+                            'Aportaciones',
+                            afiliado.id,
+                            int(afiliado.cuenta),
+                            )
+                          )
+        
+        out = io.open(self.banco.nombre + str(self.fecha)+".txt", 'w')
+        out.writelines(charges)
+
+class Continental(Generator):
+    
+    def __init__(self, banco, afiliados, fecha):
+        
+        super(Continental, self).__init__(banco, afiliados, fecha)
+        self.format = u"{0:02d}{1:04d}{2:016d}{3:50}{4:08d}.{5:02d}\n"
+    
+    def output(self):
+        
+        charges = list()
+        
+        for afiliado in self.afiliados:
+            nombre_afiliado = u"{0} {1}".format(afiliado.firstName, afiliado.lastName)
+            if len(nombre_afiliado) > 50:
+                nombre_afiliado = nombre_afiliado[:49]
+            
+            mensual = afiliado.get_monthly()
+            charges.append(self.format.format(
+                            self.fecha.month,
+                            self.fecha.year,
+                            int(afiliado.cuenta),
+                            nombre_afiliado,
+                            int(mensual.quantize(Decimal("1"), rounding=ROUND_DOWN)),
+                            int(mensual % 1)
+                            )
+                          )
+        
+        out = io.open(self.banco.nombre + str(self.fecha)+".txt", 'w')
+        out.writelines(charges)

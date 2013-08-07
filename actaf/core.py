@@ -97,12 +97,11 @@ class AnalizadorCSV(object):
         
         amount = Decimal(row[2].replace(',', ''))
         identidad = '{0:013d}'.format(int(row[0].replace('-', '')))
-        try:
-            self.parsed.append(Ingreso(self.affiliates[identidad], amount))
-        
-        except:
+        if not identidad in self.affiliates:
             self.perdidos += 1
             print("Error de parseo no se encontro la identidad {0}".format(identidad))
+        else:
+            self.parsed.append(Ingreso(self.affiliates[identidad], amount))
 
 class AnalizadorINPREMA(object):
     
@@ -123,7 +122,7 @@ class AnalizadorINPREMA(object):
         de :class:`Ingreso`"""
         
         map((lambda r: self.single(r)), self.reader)
-                
+        
         print self.perdidos
         return self.parsed
     
@@ -402,16 +401,23 @@ class Generador(object):
 
 class Extraccion(object):
     
-    def __init__(self, afiliado, cantidad):
+    def __init__(self, afiliado, cantidad, fecha):
         
         self.afiliado = afiliado
         self.cantidad = cantidad
         self.marca = 'N'
+        self.fecha = fecha
     
     def list(self):
         
-        return [self.afiliado.id, self.afiliado.lastName, self.afiliado.firstName,
-                self.afiliado.escalafon, self.cantidad, self.marca]
+        return [self.afiliado.escalafon,
+                0,
+                11,
+                self.fecha.day,
+                self.fecha.month,
+                self.fecha.year,
+                self.cantidad,
+                self.marca]
     
     def __str__(self):
         
