@@ -181,7 +181,7 @@ class Atlantida(Parser):
     
     def __init__(self, fecha, archivo, banco):
         
-        super(Occidente, self).__init__(fecha, archivo, banco)
+        super(Atlantida, self).__init__(fecha, archivo, banco)
     
     def output(self):
         
