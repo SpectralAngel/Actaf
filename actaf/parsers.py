@@ -187,3 +187,14 @@ class Atlantida(Parser):
         
         self.analizador = core.AnalizadorCSV(self.archivo, self.afiliados, True)
         return self.analizador.parse()
+
+class DaVivienda(Parser):
+    
+    def __init__(self, fecha, archivo, banco):
+        
+        super(DaVivienda, self).__init__(fecha, archivo, banco)
+    
+    def output(self):
+        
+        self.analizador = core.AnalizadorCSV(self.archivo, self.afiliados, True)
+        return self.analizador.parse()
