@@ -229,10 +229,11 @@ class Ficensa(Generator):
     def __init__(self, banco, afiliados, fecha):
         
         super(Ficensa, self).__init__(banco, afiliados, fecha)
-        self.format = u"{0}APO{1:13}{2:8d}{3:<40}{4:<20}{5:08d} {6:015d}"
+        self.format = u"{0}{1:13}APO{02:8d}{3:<40}{4:<20}{5:08d} {6:015d}\n"
     
     def output(self):
         
+        print(self.banco.nombre)
         charges = list()
         
         for afiliado in self.afiliados:
@@ -242,7 +243,7 @@ class Ficensa(Generator):
                 nombre_afiliado = nombre_afiliado[:39]
             
             charges.append(self.format.format(
-                            self.fecha.strftime("%Y%m%d"),
+                            self.fecha.strftime("%Y%m"),
                             afiliado.cardID.replace('-', ''),
                             int(afiliado.get_monthly() * Decimal("100")),
                             nombre_afiliado,

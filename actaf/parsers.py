@@ -17,8 +17,6 @@
 # You should have received a copy of the GNU General Public License
 # along with Actaf.  If not, see <http://www.gnu.org/licenses/>.
 
-from datetime import date
-from decimal import Decimal
 import database
 import core
 
