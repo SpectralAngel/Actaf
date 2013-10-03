@@ -32,7 +32,7 @@ def agregar(linea):
     try:
         
         kw['affiliate'] = model.Affiliate.selectBy(cardID=linea[0]).limit(1).getOne()
-        kw['months'] = -1
+        kw['months'] = 1
         kw['amount'] = Decimal(linea[1])
         return model.Extra(**kw)
         
