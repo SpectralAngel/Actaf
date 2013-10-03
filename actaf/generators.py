@@ -18,6 +18,7 @@
 # along with Actaf.  If not, see <http://www.gnu.org/licenses/>.
 
 import unicodecsv
+import csv
 from decimal import Decimal, ROUND_DOWN
 import model
 import io
@@ -159,6 +160,7 @@ class INPREMA(Generator):
         
         charges = list()
         identidad = 0
+        line = list()
         
         for afiliado in self.afiliados:
             if afiliado.cardID == None or afiliado.cardID == '0':
@@ -170,7 +172,16 @@ class INPREMA(Generator):
                             afiliado.cardID.replace('-', ''),
                             afiliado.get_monthly(self.fecha)
                             )
+            line.append((
+                         str(self.fecha.year),
+                         str(self.fecha.month),
+                         afiliado.cardID.replace('-', ''),
+                         str(afiliado.get_monthly(self.fecha))
+                         ))
             charges.append(salida)
+        
+        planilla = unicodecsv.UnicodeWriter(open(u'INPREMA{0}.csv'.format(str(self.fecha)), 'wb'), quoting=csv.QUOTE_ALL)
+        map((lambda l: planilla.writerow(l)), line)
         
         out = io.open("inprema.txt", 'w')
         out.writelines(charges)
@@ -285,3 +296,20 @@ class Continental(Generator):
         
         out = io.open(self.banco.nombre + str(self.fecha)+".txt", 'w')
         out.writelines(charges)
+
+class UPN(Generator):
+    
+    def __init__(self, afiliados, fecha):
+        
+        super(UPN, self).__init__(None, afiliados, fecha)
+        self.afiliados = afiliados
+    
+    def output(self):
+        
+        line = ([a.cardID,
+                 u"{0} {1}".format(a.firstName, a.lastName),
+                 str(a.escalafon),
+                 str(a.get_monthly(self.fecha))] for a in self.afiliados)
+        
+        planilla = unicodecsv.UnicodeWriter(open(u'UPN{0}.csv'.format(str(self.fecha)), 'wb'))
+        map((lambda l: planilla.writerow(l)), line)

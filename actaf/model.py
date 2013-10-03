@@ -232,8 +232,8 @@ class Affiliate(SQLObject):
         loans = Decimal(0)
         # Cobrar solo el primer préstamo
         for loan in self.loans:
-            
-            loans = loan.get_payment()
+            if loan.cobrar:
+                loans = loan.get_payment()
             break
         
         return loans
@@ -566,6 +566,7 @@ class Loan(SQLObject):
     pays = MultipleJoin("Pay", orderBy="day")
     deductions = MultipleJoin("Deduction")
     aproval = ForeignKey("User")
+    cobrar = BoolCol(default=True)
     
     def percent(self):
         
