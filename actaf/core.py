@@ -21,6 +21,7 @@ from decimal import Decimal
 import csv
 import database
 import retrasadas
+from collections import defaultdict
 
 hundred = Decimal("100")
 
@@ -83,6 +84,7 @@ class AnalizadorCSV(object):
             affiliates = filter((lambda a: a.cardID != None), affiliates)
             for a in affiliates:
                 self.affiliates[a.cardID.replace('-', '')] = a
+        self.preparse = defaultdict(Decimal)
     
     def parse(self):
         
@@ -91,6 +93,9 @@ class AnalizadorCSV(object):
         de :class:`Ingreso`"""
         
         map((lambda r: self.single(r)), self.reader)
+        
+        for afiliado in self.preparse:
+            self.parsed.append(Ingreso(afiliado, self.preparse[afiliado]))
         
         return self.parsed
     
@@ -111,7 +116,7 @@ class AnalizadorCSV(object):
             else:
                 afiliado = self.affiliates[identidad]
         if afiliado:
-            self.parsed.append(Ingreso(afiliado, amount))
+            self.preparse[afiliado] += amount
 
 class AnalizadorINPREMA(object):
     
