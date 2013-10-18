@@ -35,14 +35,8 @@ class Retrasada(object):
         return [self.afiliado, self.anio, self.mes]
     
     def crear_extra(self):
-        
-        # Version para SGAM
-        # cuenta = model.CuentaRetrasada.get_by(mes=self.mes,anio=self.anio)
-        # obligaciones = model.Obligacion.query.filter_by(model.Obligacion.mes=self.mes,
-        #                                                model.Obligacion.Anio=self.anio).all()
-        
-        # Version para TurboAffiliate
-        if self.anio == None or self.mes == None:
+
+        if self.anio is None or self.mes is None:
             return
         
         obligaciones = None
@@ -57,7 +51,7 @@ class Retrasada(object):
         # obligacion = sum(o.cantidad for o in obligaciones)
         
         # TA
-        if obligaciones == None:
+        if obligaciones is None:
             print self.anio, self.mes
             return
         
