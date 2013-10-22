@@ -68,7 +68,12 @@ class Occidente(Generator):
         super(Occidente, self).__init__(banco, afiliados, fecha)
         self.format = u"{0:012d}{1:18}{2:12d}{3:<30}{4:<20}{5:04d}{6:02d}"
         self.format += u"{7:02d}{8:013d} \n"
-        self.fecha = date(self.fecha.year, self.fecha.month + 3, self.fecha.day)
+        month = self.fecha.month + 3
+        year = self.fecha.year
+        if month > 12:
+            month -= 12
+            year += 1
+        self.fecha = date(year, month, self.fecha.day)
     
     def output(self):
         
