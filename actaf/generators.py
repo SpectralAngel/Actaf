@@ -115,8 +115,6 @@ class Atlantida(Generator):
         charges = list()
         
         for afiliado in self.afiliados:
-            if not afiliado.autorizacion:
-                continue
             nombre_afiliado = u"{0} {1}".format(afiliado.firstName, afiliado.lastName)
             if len(nombre_afiliado) > 40:
                 nombre_afiliado = nombre_afiliado[:39] 
@@ -168,24 +166,23 @@ class INPREMA(Generator):
         line = list()
         
         for afiliado in self.afiliados:
-            if afiliado.cardID == None or afiliado.cardID == '0':
+            if afiliado.cardID is None or afiliado.cardID == '0':
                 identidad += 1
                 continue
             salida = self.format.format(
-                            self.fecha.year,
-                            self.fecha.month,
-                            afiliado.cardID.replace('-', ''),
-                            afiliado.get_monthly(self.fecha)
-                            )
+                self.fecha.year,
+                self.fecha.month,
+                afiliado.cardID.replace('-', ''),
+                afiliado.get_monthly(self.fecha))
             line.append((
-                         str(self.fecha.year),
-                         str(self.fecha.month),
-                         afiliado.cardID.replace('-', ''),
-                         str(afiliado.get_monthly(self.fecha))
-                         ))
+                str(self.fecha.year),
+                str(self.fecha.month),
+                afiliado.cardID.replace('-', ''),
+                str(afiliado.get_monthly(self.fecha))))
             charges.append(salida)
         
-        planilla = unicodecsv.UnicodeWriter(open(u'INPREMA{0}.csv'.format(str(self.fecha)), 'wb'), quoting=csv.QUOTE_ALL)
+        planilla = unicodecsv.UnicodeWriter(open(u'INPREMA{0}.csv'.format(str(self.fecha)), 'wb'),
+                                            quoting=csv.QUOTE_ALL)
         map((lambda l: planilla.writerow(l)), line)
         
         out = io.open("inprema.txt", 'w')
