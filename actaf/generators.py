@@ -115,7 +115,11 @@ class Atlantida(Generator):
         charges = list()
         
         for afiliado in self.afiliados:
-            nombre_afiliado = u"{0} {1}".format(afiliado.firstName, afiliado.lastName)
+            if not afiliado.autorizacion:
+                continue
+
+            nombre_afiliado = u"{0} {1}".format(afiliado.firstName,
+                                                afiliado.lastName)
             if len(nombre_afiliado) > 40:
                 nombre_afiliado = nombre_afiliado[:39] 
             clients.append(self.cformat.format(
@@ -178,6 +182,7 @@ class INPREMA(Generator):
                 str(self.fecha.year),
                 str(self.fecha.month),
                 afiliado.cardID.replace('-', ''),
+                '11',
                 str(afiliado.get_monthly(self.fecha))))
             charges.append(salida)
         

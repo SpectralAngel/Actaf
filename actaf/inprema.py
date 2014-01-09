@@ -29,48 +29,9 @@ import argparse
 def extraer_cambios(fecha):
     
     affiliates = database.get_affiliates_by_payment(2, True)
-    afiliados = dict()
     
     generator = INPREMA(affiliates, fecha)
     generator.output()
-    
-    for a in affiliates:
-    
-        inprema = None
-        try:
-            inprema = int(a.escalafon)
-        except Exception:
-            pass
-        
-        afiliados[inprema] = a
-    
-    cambios = dict()
-    for afiliado in afiliados:
-        a = afiliados[afiliado]
-        cambios[afiliado] = core.Extraccion(a, a.get_monthly(), fecha)
-        if not a.active:
-            print(afiliado.id)
-            cambios[afiliado].cantidad = 0
-            cambios[afiliado].marca = 'C'
-    
-    parser = core.AnalizadorINPREMA('inprema.csv', afiliados)
-    
-    for income in parser.parse():
-        try:
-            if income.cantidad == cambios[int(income.afiliado.escalafon)].cantidad:
-                del cambios[int(income.afiliado.escalafon)]
-            elif income.cantidad != cambios[int(income.afiliado.escalafon)].cantidad:
-                cambios[int(income.afiliado.escalafon)].marca = 'R'
-        except Exception:
-            print "{0} {1}".format(income.afiliado.escalafon, type(income.afiliado.escalafon))
-    
-    del cambios[None]
-    
-    dexter = csv.writer(open('dexter.csv', 'w+b'))
-    
-    for numero in cambios:
-        #print cambios[numero]
-        dexter.writerow(cambios[numero].list())
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

@@ -18,6 +18,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Actaf.  If not, see <http://www.gnu.org/licenses/>.
+import argparse
 
 import model
 import csv
@@ -45,6 +46,10 @@ def agregar(linea):
         print (u"Error no especificado {0}: {1}".format(e, linea))
 
 if __name__ == '__main__':
-    
-    reader = csv.reader(open('comasol.csv'))
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("archivo")
+    args = parser.parse_args()
+
+    reader = csv.reader(open(args.archivo))
     map(agregar, reader)

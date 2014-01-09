@@ -26,19 +26,25 @@ from datetime import datetime
 
 
 def revertir(afiliado, day):
+    print("Revirtiendo {0}".format(afiliado.id))
 
-    afiliado.remove_cuota(day.year, day.month)
     for loan in afiliado.loans:
 
         for pay in loan.pays:
+
             if pay.day == day and pay.receipt == 'Planilla':
+                print("Revirtiendo pago {0}".format(pay.id))
                 pay.revert()
                 loan.reconstruirSaldo()
 
-    for deduced in afiliado.deduccucionesBancarias:
-
+    for deduced in afiliado.deduccionesBancarias:
+        print(
+        "Revisando deduccion {0} {1} {2}".format(deduced.id, deduced.month,
+                                                 deduced.year))
         if deduced.year == day.year and deduced.month == day.month:
-
+            print("Revirtiendo deduccion {0}".format(deduced.id))
+            if deduced.account.id == 1:
+                afiliado.remove_cuota(day.year, day.month)
             deduced.destroySelf()
 
 
@@ -53,6 +59,7 @@ if __name__ == "__main__":
     fecha = datetime.strptime(args.fecha, "%Y%m%d").date()
     banco = database.Banco.get(int(args.banco))
 
-    afiliados = database.get_affiliates_by_banco(banco, False)
+    afiliados = database.get_affiliates_by_banco(banco, 1, True)
 
-    map((lambda a: revertir(a, fecha)), banco.afiliados)
+    for afiliado in afiliados:
+        revertir(afiliado, fecha)

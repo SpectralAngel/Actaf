@@ -172,8 +172,9 @@ class Occidente(Parser):
         super(Occidente, self).__init__(fecha, archivo, banco)
     
     def output(self):
-        
-        return super(Occidente, self).output()
+
+        self.analizador = core.AnalizadorCSV(self.archivo, self.afiliados)
+        return self.analizador.parse()
 
 class Atlantida(Parser):
     

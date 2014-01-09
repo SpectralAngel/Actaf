@@ -68,18 +68,8 @@ def inprema(archivo, fecha):
     
     affiliates = database.get_affiliates_by_payment(2, True)
     print(affiliates.count())
-    afiliados = dict()
     
-    for a in affiliates:
-        
-        inprema = None
-        try:
-            inprema = int(a.escalafon)
-        except Exception, e:
-            print("Error en afiliado {0}: {1}".format(a.id, e.message))
-        afiliados[inprema] = a
-    
-    parser = core.AnalizadorINPREMA(archivo, afiliados)
+    parser = core.AnalizadorCSV(archivo, affiliates)
     
     reporte = start(parser, fecha)
     
@@ -90,7 +80,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("fecha",
                         help=u"Fecha en que se efectuarán los cobros")
+    parser.add_argument("archivo")
     args = parser.parse_args()
     fecha = datetime.strptime(args.fecha, "%Y%m%d").date()
     
-    inprema("inprema.csv", fecha)
+    inprema(args.archivo, fecha)
