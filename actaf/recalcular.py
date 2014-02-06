@@ -5,7 +5,7 @@ if __name__ == "__main__":
 
     print("Procesando Deducciones Bancarias")
     deducciones = model.DeduccionBancaria.selectBy(
-        account=cuenta, month=12, year=2013)
+        account=cuenta, month=11, year=2013)
 
     print(deducciones.count())
 
@@ -19,7 +19,7 @@ if __name__ == "__main__":
     print("Procesando Deducciones Planilla")
 
     deducciones = model.Deduced.selectBy(
-        account=cuenta, month=12, year=2013)
+        account=cuenta, month=11, year=2013)
     print(deducciones.count())
 
     for deduccion in deducciones:
