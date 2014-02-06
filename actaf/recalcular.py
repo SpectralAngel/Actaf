@@ -26,6 +26,6 @@ if __name__ == "__main__":
 
         for extra in deduccion.affiliate.extras:
 
-            if extra.amount == deduccion.amount:
+            if extra.amount <= deduccion.amount:
                 deduccion.account = extra.account
                 print(deduccion.amount)

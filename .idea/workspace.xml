@@ -69,7 +69,7 @@
       <file leaf-file-name="recalcular.py" pinned="false" current="true" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/Actaf/recalcular.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="7" column="32" selection-start="208" selection-end="208" vertical-scroll-proportion="0.13192904" vertical-offset="0" max-vertical-offset="902">
+            <state line="28" column="48" selection-start="775" selection-end="775" vertical-scroll-proportion="0.52771616" vertical-offset="0" max-vertical-offset="902">
               <folding />
             </state>
           </provider>
@@ -593,12 +593,12 @@
       <workItem from="1390938178366" duration="3224000" />
       <workItem from="1391190099456" duration="5114000" />
       <workItem from="1391528884239" duration="2032000" />
-      <workItem from="1391716907245" duration="47000" />
+      <workItem from="1391716907245" duration="714000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="11492000" />
+    <option name="totallyTimeSpent" value="12159000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
@@ -646,7 +646,15 @@
     </option>
   </component>
   <component name="XDebuggerManager">
-    <breakpoint-manager />
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="python-line">
+          <url>file://$PROJECT_DIR$/Actaf/recalcular.py</url>
+          <line>17</line>
+        </line-breakpoint>
+      </breakpoints>
+      <option name="time" value="1" />
+    </breakpoint-manager>
   </component>
   <component name="editorHistoryManager">
     <entry file="file://$PROJECT_DIR$/Actaf/model.py">
@@ -985,7 +993,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/Actaf/recalcular.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="7" column="32" selection-start="208" selection-end="208" vertical-scroll-proportion="0.13192904" vertical-offset="0" max-vertical-offset="902">
+        <state line="28" column="48" selection-start="775" selection-end="775" vertical-scroll-proportion="0.52771616" vertical-offset="0" max-vertical-offset="902">
           <folding />
         </state>
       </provider>
