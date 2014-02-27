@@ -48,11 +48,11 @@ class Actualizador(object):
         """Actualiza el estado de cuenta de acuerdo a un :class:`Ingreso`"""
 
         self.cuota(ingreso)
+        map((lambda p: self.prestamo(p, ingreso)), ingreso.afiliado.loans)
         self.extra(ingreso)
 
         map((lambda r: self.reintegros(r, ingreso)),
             ingreso.afiliado.reintegros)
-        map((lambda p: self.prestamo(p, ingreso)), ingreso.afiliado.loans)
 
         if ingreso.cantidad > 0:
             self.excedente(ingreso)
