@@ -195,36 +195,9 @@ class DaVivienda(Parser):
 
 
 class Ficensa(Parser):
-
     def __init__(self, fecha, archivo, banco):
         super(Ficensa, self).__init__(fecha, archivo, banco)
-        self.parsed = list()
-        self.preparse = defaultdict(Decimal)
 
     def output(self):
-
-        """Se encarga de tomar linea por linea cada uno de los códigos de
-        cobro y asignarle la cantidad deducida, entregandola en una lista
-        de :class:`Ingreso`"""
-        self.reader = csv.reader(open(self.archivo))
-        self.reader.next()
-        map((lambda r: self.single(r)), self.reader)
-
-        for afiliado in self.preparse:
-            self.parsed.append(core.Ingreso(afiliado, self.preparse[afiliado]))
-
-        return self.parsed
-
-    def single(self, row):
-        if int(row[8]) == 2:
-            return
-        amount = Decimal(row[14].replace(',', ''))
-        afiliado = None
-
-        afiliado = database.get_affiliate(int(row[7]))
-        if not afiliado:
-            self.perdidos += 1
-            print("Error de parseo no se encontro la identidad {0}".format(row[0]))
-
-        if afiliado:
-            self.preparse[afiliado] += amount
+        self.analizador = core.AnalizadorCSV(self.archivo, self.afiliados, True)
+        return self.analizador.parse()
