@@ -199,5 +199,5 @@ class Ficensa(Parser):
         super(Ficensa, self).__init__(fecha, archivo, banco)
 
     def output(self):
-        self.analizador = core.AnalizadorCSV(self.archivo, self.afiliados, True)
+        self.analizador = core.AnalizadorCSV(self.archivo, self.afiliados)
         return self.analizador.parse()
