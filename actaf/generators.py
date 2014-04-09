@@ -58,9 +58,7 @@ class Generator(object):
                  str(a.get_monthly()),
                 ]
                 for a in self.afiliados)
-        line = filter((lambda l: l[0] != None and l[1] != None and l[
-            2] != None and l[3] != None),
-                      line)
+        line = filter((lambda l: l[0] != None and l[1] != None and l[2] != None and l[3] != None), line)
         planilla = unicodecsv.UnicodeWriter(open(u'COPEMH.csv', 'wb'))
         map((lambda l: planilla.writerow(l)), line)
 

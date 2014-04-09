@@ -197,14 +197,25 @@ class Affiliate(SQLObject):
             return 1
         
         return (date.today() - self.joined).days / 365
-    
+
+    def get_cotizado(self):
+
+        return len([c for c in self.cuotaTables if c.all()])
+
     def get_banco(self):
         
-        if self.banco == None:
+        if self.banco is None:
             
             return None
         
         return Banco.get(self.banco)
+
+    def get_birthday(self):
+
+        if self.birthday is None:
+            return None
+
+        return self.birthday.strftime("%y-%m-%d")
     
     def get_monthly(self, day=date.today()):
         
@@ -219,7 +230,13 @@ class Affiliate(SQLObject):
                 break
             reintegros += reintegro.monto
         
-        return extras + self.get_prestamo() + reintegros + self.get_cuota(day)
+        loans = Decimal(0)
+        # Cobrar solo el primer préstamo
+        for loan in self.loans:
+            loans = loan.payment
+            break
+        
+        return extras + loans + reintegros + self.get_cuota(day)
     
     def get_cuota(self, day=date.today()):
         
@@ -242,8 +259,7 @@ class Affiliate(SQLObject):
         loans = Decimal(0)
         # Cobrar solo el primer préstamo
         for loan in self.loans:
-            if loan.cobrar:
-                loans = loan.get_payment()
+            loans = loan.get_payment()
             break
         
         return loans
