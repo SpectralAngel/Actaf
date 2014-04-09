@@ -39,7 +39,8 @@ if __name__ == '__main__':
 
     afiliados = model.Affiliate.select(
         AND(model.Affiliate.q.desactivacion >= date(2011, 01, 01),
-            model.Affiliate.q.desactivacion <= date(2013, 12, 31), active=False)
+            model.Affiliate.q.desactivacion <= date(2013, 12, 31),
+            model.Affiliate.q.active==False)
     )
     afiliados = ([str(a.cardID), a.firstName + ' ' + a.lastName, str(a.get_birthday())]
                  for a in afiliados)
