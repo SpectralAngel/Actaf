@@ -61,6 +61,7 @@ def start(parser, dia, inprema=True, cotizacion=2):
     
     return reporte
 
+
 def inprema(archivo, fecha):
     
     """Incializa la actualización de las aportaciones mediante la planilla de
