@@ -15,7 +15,7 @@ if __name__ == "__main__":
 
             if extra.amount == deduccion.amount:
                 deduccion.account = extra.account
-                print(deduccion.amount)
+
     print("Procesando Deducciones Planilla")
 
     deducciones = model.Deduced.selectBy(
@@ -28,4 +28,3 @@ if __name__ == "__main__":
 
             if extra.amount <= deduccion.amount:
                 deduccion.account = extra.account
-                print(deduccion.amount)

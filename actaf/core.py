@@ -320,7 +320,7 @@ class ReportLine(object):
 
     def __str__(self):
         total = self.amount * Decimal(100)
-        if self.afiliado.cardID == None:
+        if self.afiliado.cardID is None:
             return str()
         return "{0}0011{1:018d}".format(self.afiliado.cardID.replace('-', ''),
                                         total)
@@ -445,4 +445,3 @@ class Extraccion(object):
     def __str__(self):
         return "{0} {1} {1}".format(self.afiliado.escalafon, str(self.cantidad),
                                     self.marca)
-

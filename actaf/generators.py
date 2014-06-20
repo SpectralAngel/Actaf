@@ -111,8 +111,8 @@ class Atlantida(Generator):
     def output(self):
 
         print(self.banco.nombre)
-        clients = list()
-        charges = list()
+        clients = []
+        charges = []
 
         for afiliado in self.afiliados:
             if not afiliado.autorizacion:
