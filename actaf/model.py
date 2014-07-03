@@ -235,8 +235,10 @@ class Affiliate(SQLObject):
         for loan in self.loans:
             loans = loan.payment
             break
-        
-        return extras + loans + reintegros + self.get_cuota(day)
+
+        #return extras + loans + reintegros + self.get_cuota(day)
+        return extras + loans + reintegros
+        #return self.get_cuota(day)
     
     def get_cuota(self, day=date.today()):
         

@@ -62,6 +62,20 @@ class Generator(object):
         planilla = unicodecsv.UnicodeWriter(open(u'COPEMH.csv', 'wb'))
         map((lambda l: planilla.writerow(l)), line)
 
+    def cobros(self):
+        line = ([str(a.id),
+                 a.cardID.replace('-', ''),
+                 u"{0} {1}".format(a.firstName, a.lastName),
+                 str(a.get_monthly(self.fecha)),
+                 str(a.get_phone()),
+                 str(a.get_email()),
+                 str(a.get_monthly()),
+                 ]
+                for a in self.afiliados)
+        line = filter((lambda l: l[0] != None and l[1] != None and l[2] != None and l[3] != None), line)
+        planilla = unicodecsv.UnicodeWriter(open(u'COPEMH.csv', 'wb'))
+        map((lambda l: planilla.writerow(l)), line)
+
 
 class Occidente(Generator):
     def __init__(self, banco, afiliados, fecha):

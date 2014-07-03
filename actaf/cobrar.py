@@ -62,3 +62,4 @@ if __name__ == "__main__":
     generator = generators.Generator(BancoProxy, afiliados, fecha)
     generator.output()
     generator.davivienda()
+    generator.cobros()
