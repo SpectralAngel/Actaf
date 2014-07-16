@@ -39,7 +39,7 @@ class Generator(object):
         line = ([str(a.id),
                  u"{0} {1}".format(a.firstName, a.lastName),
                  a.cardID,
-                 str(a.get_monthly(self.fecha)),
+                 str(a.get_monthly(self.fecha, True)),
                  str(a.cuenta)] for a in self.afiliados)
         line = filter((lambda l: l[0] != None and l[1] != None and l[
             2] is not None and l[3] is not None),
@@ -52,7 +52,7 @@ class Generator(object):
         line = ([str(a.id),
                  a.cardID.replace('-', ''),
                  u"{0} {1}".format(a.firstName, a.lastName),
-                 str(a.get_monthly(self.fecha)),
+                 str(a.get_monthly(self.fecha, True)),
                  str(0),
                  str(0),
                  str(a.get_monthly()),
