@@ -56,6 +56,6 @@ if __name__ == "__main__":
     updater.registrar_cuenta(database.get_cuota_account(), 'cuota')
     updater.registrar_cuenta(database.get_incomplete_account(), 'incomplete')
     updater.registrar_cuenta(database.get_exceding_account(), 'excedente')
-    print("Actualizando {0}".format(banco.nombre))
+    print(u"Actualizando {0}".format(banco.nombre))
     
     map((lambda i: updater.update(i)), parsed)

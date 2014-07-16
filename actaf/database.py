@@ -47,18 +47,19 @@ def get_affiliates_by_payment(payment, active_only=False):
                                 Affiliate.q.cardID != None))
 
 
-def get_affiliates_by_banco(banco, cotizacion=1, active_only=True):
-    cotizacion = Cotizacion.get(cotizacion)
+def get_affiliates_by_banco(banco, active_only=True):
 
     return Affiliate.select(AND(Affiliate.q.banco == banco.id,
-                                Affiliate.q.cotizacion == cotizacion,
                                 Affiliate.q.cuenta != None,
                                 Affiliate.q.cuenta != "",
                                 Affiliate.q.active == active_only))
 
 
-def get_all_affiliates():
-    return Affiliate.select()
+def get_all_affiliates(active_only=True):
+    if active_only:
+        return Affiliate.selectBy(active=True)
+    else:
+        return Affiliate.select()
 
 
 def get_loans_by_period(start, end):

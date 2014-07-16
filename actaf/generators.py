@@ -88,6 +88,7 @@ class Occidente(Generator):
         if month > 12:
             month -= 12
             year += 1
+        self.fecha_cuota = self.fecha
         self.fecha = date(year, month, self.fecha.day)
 
     def output(self):
@@ -104,7 +105,7 @@ class Occidente(Generator):
                 self.fecha.year,
                 self.fecha.month,
                 self.fecha.day,
-                int(afiliado.get_monthly() * Decimal("100"))
+                int(afiliado.get_monthly(self.fecha_cuota, True) * Decimal("100"))
             )
             )
 
@@ -157,9 +158,9 @@ class Atlantida(Generator):
                 afiliado.id,
                 u"",
                 1,
-                int(afiliado.get_monthly(self.fecha) * Decimal("100")),
+                int(afiliado.get_monthly(self.fecha, True) * Decimal("100")),
                 u"LPS",
-                u"Cuota de Aportaciones",
+                u"Cuota de Aportaciones COPEMH",
                 u'',
                 u'',
             ))
@@ -192,7 +193,7 @@ class INPREMA(Generator):
                 self.fecha.year,
                 self.fecha.month,
                 afiliado.cardID.replace('-', ''),
-                afiliado.get_monthly(self.fecha))
+                afiliado.get_monthly(self.fecha, True))
             line.append((
                 str(self.fecha.year),
                 str(self.fecha.month),
@@ -244,7 +245,7 @@ class Pais(Generator):
                  a.cardID,
                  u"{0} {1}".format(a.firstName, a.lastName),
                  str(a.cuenta),
-                 str(a.get_monthly(self.fecha)),
+                 str(a.get_monthly(self.fecha, True)),
                  a.get_email()] for a in self.afiliados)
 
         line = filter((lambda l: l[0] != None and l[1] != None and l[
@@ -276,7 +277,7 @@ class Ficensa(Generator):
             charges.append(self.format.format(
                 self.fecha.strftime("%Y%m"),
                 afiliado.cardID.replace('-', ''),
-                int(afiliado.get_monthly() * Decimal("100")),
+                int(afiliado.get_monthly(self.fecha, True) * Decimal("100")),
                 nombre_afiliado,
                 'Aportaciones',
                 afiliado.id,
@@ -304,7 +305,7 @@ class Continental(Generator):
             if len(nombre_afiliado) > 50:
                 nombre_afiliado = nombre_afiliado[:49]
 
-            mensual = afiliado.get_monthly()
+            mensual = afiliado.get_monthly(self.fecha, True)
             charges.append(self.format.format(
                 self.fecha.month,
                 self.fecha.year,
@@ -328,7 +329,7 @@ class UPN(Generator):
         line = ([a.cardID,
                  u"{0} {1}".format(a.firstName, a.lastName),
                  str(a.escalafon),
-                 str(a.get_monthly(self.fecha))] for a in self.afiliados)
+                 str(a.get_monthly(self.fecha, True))] for a in self.afiliados)
 
         planilla = unicodecsv.UnicodeWriter(
             open(u'UPN{0}.csv'.format(str(self.fecha)), 'wb'))

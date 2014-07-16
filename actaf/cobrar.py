@@ -28,7 +28,7 @@ from datetime import datetime
 
 def escribir_banco(parametro):
     
-    afiliados = database.get_affiliates_by_banco(parametro[0], 1, True)
+    afiliados = database.get_affiliates_by_banco(parametro[0], True)
     Generator = getattr(generators, parametro[0].generator)
     generator = Generator(parametro[0], afiliados, parametro[1])
     generator.output()
@@ -58,7 +58,7 @@ if __name__ == "__main__":
     
     pool.map(escribir_banco, bancos)
     
-    afiliados = database.get_affiliates_by_payment(1, True)
+    afiliados = database.get_all_affiliates()
     generator = generators.Generator(BancoProxy, afiliados, fecha)
     generator.output()
     generator.davivienda()
