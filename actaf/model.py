@@ -87,6 +87,7 @@ class Cotizacion(SQLObject):
     jubilados = BoolCol(default=True)
     usuarios = RelatedJoin("User")
     afiliados = MultipleJoin("Affiliate")
+    bank_main = BoolCol(default=False)
 
 
 class Affiliate(SQLObject):
@@ -209,23 +210,24 @@ class Affiliate(SQLObject):
     def get_monthly(self, day=date.today(), bank=False):
 
         """Obtiene el pago mensual que debe efectuar el afiliado"""
-
-        extras = sum(e.amount for e in self.extras)
+        total = sum(e.amount for e in self.extras)
         #loans = sum(l.get_payment() for l in self.loans)
         #reintegros = sum(r.monto for r in self.reintegros if not r.pagado)
-        reintegros = Decimal(0)
+
         for reintegro in self.reintegros:
             if reintegro.pagado:
                 break
-            reintegros += reintegro.monto
+            total += reintegro.monto
 
-        cuota = Zero
         if bank:
-            cuota = self.get_bank_cuota(day)
+            total += self.get_bank_cuota(day)
         else:
-            cuota = self.get_cuota(day)
+            total += self.get_cuota(day)
 
-        return extras + self.get_prestamo() + reintegros + cuota
+        if self.cotizacion.bank_main or self.banco_completo:
+            total += self.get_prestamo()
+
+        return total
 
     def get_cuota(self, day=date.today()):
 
