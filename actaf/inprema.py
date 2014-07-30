@@ -1,4 +1,4 @@
-#!/usr/bin/python
+# !/usr/bin/python
 # -*- coding: utf8 -*-
 #
 # inprema.py
@@ -19,26 +19,26 @@
 # You should have received a copy of the GNU General Public License
 # along with Actaf.  If not, see <http://www.gnu.org/licenses/>.
 
-import csv
-import database
-import core
-from generators import INPREMA
-from datetime import date, datetime
+from datetime import datetime
 import argparse
 
+import database
+from generators import INPREMA
+
+
 def extraer_cambios(fecha):
-    
     affiliates = database.get_affiliates_by_payment(2, True)
-    
+
     generator = INPREMA(affiliates, fecha)
     generator.output()
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("fecha",
                         help=u"Fecha en que se efectuarán los cobros")
-    
+
     args = parser.parse_args()
-    
+
     fecha = datetime.strptime(args.fecha, "%Y%m%d").date()
     extraer_cambios(fecha)

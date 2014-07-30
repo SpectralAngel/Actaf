@@ -183,7 +183,8 @@ class INPREMA(Generator):
 
         charges = list()
         identidad = 0
-        line = list()
+        line = []
+        loan = []
 
         for afiliado in self.afiliados:
             if afiliado.cardID is None or afiliado.cardID == '0':
@@ -200,15 +201,22 @@ class INPREMA(Generator):
                 afiliado.cardID.replace('-', ''),
                 '11',
                 str(afiliado.get_monthly(self.fecha))))
+            loan.append((
+                str(self.fecha.year),
+                str(self.fecha.month),
+                afiliado.cardID.replace('-', ''),
+                '11',
+                str(afiliado.get_prestamo())))
             charges.append(salida)
 
         planilla = unicodecsv.UnicodeWriter(
             open(u'INPREMA{0}.csv'.format(str(self.fecha)), 'wb'),
             quoting=csv.QUOTE_ALL)
+        prestamos = unicodecsv.UnicodeWriter(
+            open(u'INPREMA{0}-prestamo.csv'.format(str(self.fecha)), 'wb'),
+            quoting=csv.QUOTE_ALL)
         map((lambda l: planilla.writerow(l)), line)
-
-        out = io.open("inprema.txt", 'w')
-        out.writelines(charges)
+        map((lambda l: prestamos.writerow(l)), loan)
 
 
 class Banhcafe(Generator):
