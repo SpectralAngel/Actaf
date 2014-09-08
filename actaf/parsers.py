@@ -16,9 +16,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Actaf.  If not, see <http://www.gnu.org/licenses/>.
-from collections import defaultdict
-import csv
-from decimal import Decimal
 
 import database
 import core
@@ -43,19 +40,25 @@ class Actualizador(object):
 
         self.registro[name] = account
 
+    def aditional(self, ingreso):
+        self.extra(ingreso)
+        map((lambda r: self.reintegros(r, ingreso)),
+            ingreso.afiliado.reintegros)
+        map((lambda p: self.prestamo(p, ingreso)), ingreso.afiliado.loans)
+        if ingreso.cantidad > 0:
+            self.excedente(ingreso)
+
     def update(self, ingreso):
 
         """Actualiza el estado de cuenta de acuerdo a un :class:`Ingreso`"""
 
         self.cuota(ingreso)
-        map((lambda p: self.prestamo(p, ingreso)), ingreso.afiliado.loans)
-        self.extra(ingreso)
+        self.aditional(ingreso)
 
-        map((lambda r: self.reintegros(r, ingreso)),
-            ingreso.afiliado.reintegros)
+    def update_compliment(self, ingreso):
 
-        if ingreso.cantidad > 0:
-            self.excedente(ingreso)
+        self.complemento(ingreso)
+        self.aditional(ingreso)
 
     def cuota(self, ingreso):
 
@@ -153,6 +156,17 @@ class Actualizador(object):
                                            self.registro['incomplete'],
                                            self.banco, self.day)
             ingreso.cantidad = 0
+
+    def complemento(self, ingreso):
+
+        if ingreso.cantidad >= self.obligacion:
+            self.cuentas[self.registro['cuota']]['amount'] += self.obligacion
+            self.cuentas[self.registro['cuota']]['number'] += 1
+            ingreso.afiliado.pay_compliment(self.day.year, self.day.month)
+            ingreso.cantidad -= self.obligacion
+            database.create_bank_deduction(ingreso.afiliado, self.obligacion,
+                                           self.registro['cuota'], self.banco,
+                                           self.day)
 
 
 class Parser(object):

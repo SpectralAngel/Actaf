@@ -124,6 +124,30 @@ class AnalizadorCSV(object):
             self.preparse[afiliado] += amount
 
 
+class AnalizadorCSVSingle(AnalizadorCSV):
+    def __init__(self, filename, byID=False):
+
+        self.reader = csv.reader(open(filename))
+        self.affiliates = dict()
+        self.parsed = list()
+        self.byID = byID
+
+    def parse(self):
+
+        return [self.single(row) for row in self.reader]
+
+    def single(self, row):
+
+        amount = Decimal(row[2].replace(',', ''))
+        if self.byID:
+            afiliado = database.get_affiliate(int(row[0]))
+        else:
+            cardID = '{0:013d}'.format(int(row[0].replace('-', '')))
+            afiliado = database.get_affiliate_by_card_id(cardID)
+
+        return Ingreso(afiliado, amount)
+
+
 class AnalizadorINPREMA(object):
     """Extrae los datos de la planilla de INPREMA y los convierte en
     una representación interna de los cobros"""
@@ -176,19 +200,25 @@ class Actualizador(object):
 
         self.registro[name] = account
 
+    def aditional(self, ingreso):
+        self.extra(ingreso)
+        map((lambda r: self.reintegros(r, ingreso)),
+            ingreso.afiliado.reintegros)
+        map((lambda p: self.prestamo(p, ingreso)), ingreso.afiliado.loans)
+        if ingreso.cantidad > 0:
+            self.excedente(ingreso)
+
     def update(self, ingreso):
 
         """Actualiza el estado de cuenta de acuerdo a un :class:`Ingreso`"""
 
         self.cuota(ingreso)
-        self.extra(ingreso)
+        self.aditional(ingreso)
 
-        map((lambda r: self.reintegros(r, ingreso)),
-            ingreso.afiliado.reintegros)
-        map((lambda p: self.prestamo(p, ingreso)), ingreso.afiliado.loans)
+    def update_compliment(self, ingreso):
 
-        if ingreso.cantidad > 0:
-            self.excedente(ingreso)
+        self.complemento(ingreso)
+        self.aditional(ingreso)
 
     def cuota(self, ingreso):
 
@@ -282,6 +312,17 @@ class Actualizador(object):
             database.create_deduction(ingreso.afiliado, ingreso.cantidad,
                                       self.registro['incomplete'], self.day)
             ingreso.cantidad = 0
+
+    def complemento(self, ingreso):
+
+        if ingreso.cantidad >= self.obligacion:
+            self.cuentas[self.registro['cuota']]['amount'] += self.obligacion
+            self.cuentas[self.registro['cuota']]['number'] += 1
+            ingreso.afiliado.pay_compliment(self.day.year, self.day.month)
+            ingreso.cantidad -= self.obligacion
+            database.create_bank_deduction(ingreso.afiliado, self.obligacion,
+                                           self.registro['cuota'], self.banco,
+                                           self.day)
 
 
 class Corrector(object):

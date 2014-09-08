@@ -34,6 +34,11 @@ def get_affiliate(afiliacion):
         return None
 
 
+def get_affiliate_by_card_id(cardID):
+
+    return Affiliate.selectBy(cardID=cardID).getOne()
+
+
 def get_loan(prestamo):
     return Loan.get(prestamo)
 
@@ -79,6 +84,13 @@ def get_obligation(year, month, inprema=False):
     return sum(o.amount for o in obligations)
 
 
+def get_compliment(year, month, inprema=False):
+    obligations = Obligation.selectBy(year=year, month=month)
+    if inprema:
+        return sum(o.inprema_compliment for o in obligations)
+    return sum(o.amount_compliment for o in obligations)
+
+
 def get_accounts():
     return Account.select()
 
@@ -101,6 +113,10 @@ def get_incomplete_account():
 
 def get_help_account():
     return Account.get(495)
+
+
+def get_inprema_account():
+    return Account.get(687)
 
 
 def get_income_report(year, month):

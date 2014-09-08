@@ -19,70 +19,68 @@
 
 from decimal import Decimal
 from datetime import datetime
+import argparse
 
 import database
 import core
-import argparse
+
 
 def start(parser, dia, inprema=True, cotizacion=2):
-    
     """Inicia el proceso de actualización de las aportaciones utilizando la
     planilla recibida"""
-    
+
     print("Iniciando proceso de Actualizacion, esto puede tardar mucho tiempo")
-    
+
     accounts = dict()
     for account in database.get_accounts():
-        
         accounts[account] = dict()
         accounts[account]['number'] = 0
         accounts[account]['amount'] = Decimal(0)
-    
+
     updater = core.Actualizador(database.get_obligation(dia.year, dia.month,
                                                         inprema), accounts, dia)
-    
+
     updater.registrar_cuenta(database.get_loan_account(), 'prestamo')
     updater.registrar_cuenta(database.get_cuota_account(), 'cuota')
     updater.registrar_cuenta(database.get_incomplete_account(), 'incomplete')
     updater.registrar_cuenta(database.get_exceding_account(), 'excedente')
-    
+
     # Cambiar por un par de acciones que muestren progreso
     parsed = parser.parse()
     map((lambda i: updater.update(i)), parsed)
-    
+
     reporte = None
     if inprema:
         reporte = database.create_other_report(accounts, dia.year, dia.month,
                                                cotizacion)
     else:
         reporte = database.create_report(accounts, dia.year, dia.month)
-    
+
     print("Proceso de actualización Exitoso!")
-    
+
     return reporte
 
 
 def inprema(archivo, fecha):
-    
     """Incializa la actualización de las aportaciones mediante la planilla de
     INPREMA"""
-    
+
     affiliates = database.get_affiliates_by_payment(2, True)
     print(affiliates.count())
-    
+
     parser = core.AnalizadorCSV(archivo, affiliates)
-    
+
     reporte = start(parser, fecha)
-    
+
     return reporte
 
+
 if __name__ == "__main__":
-    
     parser = argparse.ArgumentParser()
     parser.add_argument("fecha",
                         help=u"Fecha en que se efectuarán los cobros")
     parser.add_argument("archivo")
     args = parser.parse_args()
     fecha = datetime.strptime(args.fecha, "%Y%m%d").date()
-    
+
     inprema(args.archivo, fecha)
