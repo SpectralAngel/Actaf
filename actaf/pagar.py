@@ -30,11 +30,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("fecha",
                         help=u"Fecha en que se efectuarán los cobros")
+    parser.add_argument("cobro")
     parser.add_argument("archivo")
     parser.add_argument("banco")
     args = parser.parse_args()
     
     fecha = datetime.strptime(args.fecha, "%Y%m%d").date()
+    cobro = datetime.strptime(args.cobro, "%Y%m%d").date()
     banco = database.Banco.get(int(args.banco))
     archivo = args.archivo
     
@@ -50,7 +52,7 @@ if __name__ == "__main__":
     parsed = parser.output()
     
     updater = parsers.Actualizador(database.get_obligation(fecha.year, fecha.month),
-                            accounts, fecha, banco)
+                            accounts, fecha, banco, cobro)
     
     updater.registrar_cuenta(database.get_loan_account(), 'prestamo')
     updater.registrar_cuenta(database.get_cuota_account(), 'cuota')

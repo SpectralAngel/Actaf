@@ -26,12 +26,13 @@ class Actualizador(object):
     :class:`Ingreso` registrando los motivos por los cuales se efectuó un
     determinado cobro"""
 
-    def __init__(self, obligacion, accounts, day, banco):
+    def __init__(self, obligacion, accounts, day, banco, cobro):
 
         self.obligacion = obligacion
         self.cuentas = accounts
         self.day = day
         self.banco = banco
+        self.cobro = cobro
         self.registro = dict()
 
     def registrar_cuenta(self, account, name):
@@ -72,7 +73,7 @@ class Actualizador(object):
             ingreso.cantidad -= self.obligacion
             database.create_bank_deduction(ingreso.afiliado, self.obligacion,
                                            self.registro['cuota'], self.banco,
-                                           self.day)
+                                           self.day, self.cobro)
 
     def reintegros(self, reintegro, ingreso):
 
@@ -82,7 +83,7 @@ class Actualizador(object):
             ingreso.cantidad -= reintegro.monto
             self.cuentas[reintegro.cuenta]['amount'] += reintegro.monto
             self.cuentas[reintegro.cuenta]['number'] += 1
-            reintegro.deduccion_bancaria(self.day)
+            reintegro.deduccion_bancaria(self.day, self.cobro)
 
     def procesar_extra(self, extra, ingreso, disminuir=False):
 
@@ -96,21 +97,11 @@ class Actualizador(object):
 
         self.cuentas[extra.account]['amount'] += extra.amount
         self.cuentas[extra.account]['number'] += 1
-        extra.act(True, self.day, True)
+        extra.act(True, self.day, True, self.cobro)
 
     def extra(self, ingreso):
 
         """Acredita las deducciones extra en el estado de cuenta"""
-
-        #extras = sum(e.amount for e in ingreso.afiliado.extras)
-        # La cantidad remanente excede o es igual a la cantidad sumada de todas
-        # las extras
-        #if ingreso.cantidad >= extras:
-        #    ingreso.cantidad -= extras
-        #    map((lambda e: self.procesar_extra(e, ingreso)), ingreso.afiliado.extras)
-
-        # La cantidad solo cubre parcialmente las extras
-        #else:
         map((lambda e: self.procesar_extra(e, ingreso, True)),
             ingreso.afiliado.extras)
 
@@ -123,7 +114,7 @@ class Actualizador(object):
         self.cuentas[self.registro['excedente']]['number'] += 1
         database.create_bank_deduction(ingreso.afiliado, ingreso.cantidad,
                                        self.registro['excedente'], self.banco,
-                                       self.day)
+                                       self.day, self.cobro)
 
     def prestamo(self, prestamo, ingreso):
 
@@ -154,7 +145,7 @@ class Actualizador(object):
             self.cuentas[self.registro['incomplete']]['number'] += 1
             database.create_bank_deduction(ingreso.afiliado, ingreso.cantidad,
                                            self.registro['incomplete'],
-                                           self.banco, self.day)
+                                           self.banco, self.day, self.cobro)
             ingreso.cantidad = 0
 
     def complemento(self, ingreso):
@@ -166,7 +157,7 @@ class Actualizador(object):
             ingreso.cantidad -= self.obligacion
             database.create_bank_deduction(ingreso.afiliado, self.obligacion,
                                            self.registro['cuota'], self.banco,
-                                           self.day)
+                                           self.day, self.cobro)
 
 
 class Parser(object):

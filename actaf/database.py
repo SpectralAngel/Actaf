@@ -35,7 +35,6 @@ def get_affiliate(afiliacion):
 
 
 def get_affiliate_by_card_id(cardID):
-
     return Affiliate.selectBy(cardID=cardID).getOne()
 
 
@@ -53,7 +52,6 @@ def get_affiliates_by_payment(payment, active_only=False):
 
 
 def get_affiliates_by_banco(banco, active_only=True):
-
     return Affiliate.select(AND(Affiliate.q.banco == banco.id,
                                 Affiliate.q.cuenta != None,
                                 Affiliate.q.cuenta != "",
@@ -132,9 +130,11 @@ def create_deduction(affiliate, amount, account, day=date.today()):
                    month=day.month, year=day.year)
 
 
-def create_bank_deduction(affiliate, amount, account, banco, day=date.today()):
+def create_bank_deduction(affiliate, amount, account, banco, day=date.today(),
+                          cobro=date.today()):
     return DeduccionBancaria(afiliado=affiliate, account=account, amount=amount,
-                             month=day.month, year=day.year, day=day, banco=banco)
+                             month=day.month, year=day.year, day=cobro,
+                             banco=banco)
 
 
 def create_report(accounts, year, month):
@@ -142,7 +142,8 @@ def create_report(accounts, year, month):
     for account in accounts:
         if accounts[account]['amount'] != 0:
             ReportAccount(name=account.name, amount=accounts[account]['amount'],
-                          quantity=accounts[account]['number'], postReport=report)
+                          quantity=accounts[account]['number'],
+                          postReport=report)
 
     return report
 
@@ -153,7 +154,8 @@ def create_other_report(accounts, year, month, cotizacion):
     for account in accounts:
         if accounts[account]['amount'] != 0:
             OtherAccount(amount=accounts[account]['amount'],
-                         quantity=accounts[account]['number'], otherReport=report, account=account)
+                         quantity=accounts[account]['number'],
+                         otherReport=report, account=account)
 
     return report
 
