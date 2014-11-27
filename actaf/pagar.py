@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+# !/usr/bin/env python
 # -*- coding: utf8 -*-
 #
 # pagar.py
@@ -26,7 +26,7 @@ import parsers
 from decimal import Decimal
 
 if __name__ == "__main__":
-    
+
     parser = argparse.ArgumentParser()
     parser.add_argument("fecha",
                         help=u"Fecha en que se efectuarán los cobros")
@@ -34,30 +34,33 @@ if __name__ == "__main__":
     parser.add_argument("archivo")
     parser.add_argument("banco")
     args = parser.parse_args()
-    
+
     fecha = datetime.strptime(args.fecha, "%Y%m%d").date()
     cobro = datetime.strptime(args.cobro, "%Y%m%d").date()
     banco = database.Banco.get(int(args.banco))
     archivo = args.archivo
-    
+
     accounts = dict()
     for account in database.get_accounts():
-        
         accounts[account] = dict()
         accounts[account]['number'] = 0
         accounts[account]['amount'] = Decimal(0)
-    
+
     Parser = getattr(parsers, banco.parser)
     parser = Parser(fecha, archivo, banco)
     parsed = parser.output()
-    
-    updater = parsers.Actualizador(database.get_obligation(fecha.year, fecha.month),
-                            accounts, fecha, banco, cobro)
-    
+
+    updater = parsers.Actualizador(
+        database.get_obligation(fecha.year, fecha.month),
+        accounts, fecha, banco, cobro,
+        database.get_compliment(fecha.year, fecha.month, True),
+        database.get_compliment(fecha.year, fecha.month, False))
+
     updater.registrar_cuenta(database.get_loan_account(), 'prestamo')
     updater.registrar_cuenta(database.get_cuota_account(), 'cuota')
     updater.registrar_cuenta(database.get_incomplete_account(), 'incomplete')
     updater.registrar_cuenta(database.get_exceding_account(), 'excedente')
+    updater.registrar_cuenta(database.get_inprema_account(), 'complemento')
     print(u"Actualizando {0}".format(banco.nombre))
-    
+
     map((lambda i: updater.update(i)), parsed)

@@ -60,6 +60,9 @@ if __name__ == "__main__":
     
     afiliados = database.get_all_affiliates()
     generator = generators.Generator(BancoProxy, afiliados, fecha)
+    print("General")
     generator.output()
+    print("Davivienda")
     generator.davivienda()
+    print("Cobros")
     generator.cobros()

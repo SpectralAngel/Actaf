@@ -26,6 +26,7 @@ import retrasadas
 
 
 hundred = Decimal("100")
+complemento = Decimal("178.68")
 
 
 class Ingreso(object):
@@ -67,7 +68,8 @@ class AnalizadorEscalafon(object):
             self.parsed.append(Ingreso(self.affiliates[line[0]], line[1]))
         else:
             print(
-            "Error de parseo no se encontro la identidad {0}".format(line[0]))
+                "Error de parseo no se encontro la identidad {0}".format(
+                    line[0]))
 
 
 def distribuir(line):
@@ -179,7 +181,8 @@ class AnalizadorINPREMA(object):
 
         except:
             self.perdidos += 1
-            #print("Error de parseo no se encontro la identidad {0}".format(cobro))
+            # print("Error de parseo no se encontro la identidad {0}".format(
+            # cobro))
 
 
 class Actualizador(object):
@@ -201,10 +204,20 @@ class Actualizador(object):
         self.registro[name] = account
 
     def aditional(self, ingreso):
+
+        """Efectua los pagos de un afiliado en el siguiente orden:
+
+        1. Primero paga los préstamos
+        2. Luego los cobros extra.
+        3. Posteriormente las cuotas retrasdas
+        4. Reintegros.
+        """
+
+        map((lambda p: self.prestamo(p, ingreso)), ingreso.afiliado.loans)
         self.extra(ingreso)
         map((lambda r: self.reintegros(r, ingreso)),
             ingreso.afiliado.reintegros)
-        map((lambda p: self.prestamo(p, ingreso)), ingreso.afiliado.loans)
+
         if ingreso.cantidad > 0:
             self.excedente(ingreso)
 
@@ -212,12 +225,12 @@ class Actualizador(object):
 
         """Actualiza el estado de cuenta de acuerdo a un :class:`Ingreso`"""
 
-        self.cuota(ingreso)
-        self.aditional(ingreso)
+        ingreso.afiliado.last = ingreso.cantidad
 
-    def update_compliment(self, ingreso):
-
-        self.complemento(ingreso)
+        if ingreso.cantidad == complemento:
+            self.complemento(ingreso)
+        else:
+            self.cuota(ingreso)
         self.aditional(ingreso)
 
     def cuota(self, ingreso):
@@ -227,7 +240,7 @@ class Actualizador(object):
         if ingreso.cantidad >= self.obligacion:
             self.cuentas[self.registro['cuota']]['amount'] += self.obligacion
             self.cuentas[self.registro['cuota']]['number'] += 1
-            #afiliado = database.get_affiliate(ingreso.afiliado.id)
+            # afiliado = database.get_affiliate(ingreso.afiliado.id)
             ingreso.afiliado.pay_cuota(self.day.year, self.day.month)
             ingreso.cantidad -= self.obligacion
             database.create_deduction(ingreso.afiliado, self.obligacion,
@@ -260,16 +273,6 @@ class Actualizador(object):
     def extra(self, ingreso):
 
         """Acredita las deducciones extra en el estado de cuenta"""
-
-        #extras = sum(e.amount for e in ingreso.afiliado.extras)
-        # La cantidad remanente excede o es igual a la cantidad sumada de todas
-        # las extras
-        #if ingreso.cantidad >= extras:
-        #    ingreso.cantidad -= extras
-        #    map((lambda e: self.procesar_extra(e, ingreso)), ingreso.afiliado.extras)
-
-        # La cantidad solo cubre parcialmente las extras
-        #else:
         map((lambda e: self.procesar_extra(e, ingreso, True)),
             ingreso.afiliado.extras)
 
@@ -315,13 +318,13 @@ class Actualizador(object):
 
     def complemento(self, ingreso):
 
-        if ingreso.cantidad >= self.obligacion:
-            self.cuentas[self.registro['cuota']]['amount'] += self.obligacion
-            self.cuentas[self.registro['cuota']]['number'] += 1
+        if ingreso.cantidad >= complemento:
+            self.cuentas[self.registro['complemento']]['amount'] += complemento
+            self.cuentas[self.registro['complemento']]['number'] += 1
             ingreso.afiliado.pay_compliment(self.day.year, self.day.month)
-            ingreso.cantidad -= self.obligacion
+            ingreso.cantidad -= complemento
             database.create_bank_deduction(ingreso.afiliado, self.obligacion,
-                                           self.registro['cuota'], self.banco,
+                                           self.registro['complemento'], self.banco,
                                            self.day)
 
 
@@ -347,7 +350,8 @@ class Corrector(object):
         ultimo_mes = futuro[-1]['enum']
         if ultimo_pago < prestamo.payment and ultimo_mes == prestamo.months:
             prestamo.debt += (
-            (prestamo.payment - ultimo_pago) * 2 / 3).quantize(Decimal("0.01"))
+                (prestamo.payment - ultimo_pago) * 2 / 3).quantize(
+                Decimal("0.01"))
             print("Corregido prestamo {0}".format(prestamo.id))
 
 
@@ -377,7 +381,8 @@ class Generador(object):
         self.month = month
         self.lines = list()
         self.filename = "./%(year)s%(month)02dCOPEMH.txt" % {'year': self.year,
-                                                             'month': self.month}
+                                                             'month':
+                                                                 self.month}
 
     def crear_retrasadas(self):
 
@@ -453,7 +458,8 @@ class Generador(object):
 
     def agregar_ayuda_medica(self):
 
-        """Agrega una Ayuda Médica aprobada a todos los afiliados de Escalafón"""
+        """Agrega una Ayuda Médica aprobada a todos los afiliados de
+        Escalafón"""
 
         afiliados = database.get_affiliates_by_payment("Escalafon", True)
         kw = dict()

@@ -18,6 +18,7 @@
 # along with Actaf.  If not, see <http://www.gnu.org/licenses/>.
 
 import copy
+from dateutil.relativedelta import relativedelta
 from sqlobject import (SQLObject, UnicodeCol, StringCol, DateCol, CurrencyCol,
                        MultipleJoin, ForeignKey, IntCol, DecimalCol, BoolCol,
                        DatabaseIndex, SQLObjectNotFound, connectionForURI,
@@ -88,6 +89,8 @@ class Cotizacion(SQLObject):
     usuarios = RelatedJoin("User")
     afiliados = MultipleJoin("Affiliate")
     bank_main = BoolCol(default=False)
+    alternate = BoolCol(default=True)
+    normal = BoolCol(default=True)
 
 
 class Affiliate(SQLObject):
@@ -189,20 +192,24 @@ class Affiliate(SQLObject):
                                         joinColumn="afiliado_id",
                                         orderBy=['-year', '-month'])
     banco_completo = BoolCol(default=False, notNone=True)
+    autorizaciones = MultipleJoin('Autorizacion')
+    logs = MultipleJoin('Logger')
+    bancario = UnicodeCol(default=None)
+    last = CurrencyCol(default=Zero)
 
     def tiempo(self):
 
         """Permite mostrar el tiempo que tiene el afiliado de ser parte de la
         organizacion"""
 
-        if self.joined == None:
+        if self.joined is None:
             return 1
 
         return (date.today() - self.joined).days / 365
 
     def get_banco(self):
 
-        if self.banco == None:
+        if self.banco is None:
             return None
 
         return Banco.get(self.banco)
@@ -211,7 +218,7 @@ class Affiliate(SQLObject):
 
         """Obtiene el pago mensual que debe efectuar el afiliado"""
         total = sum(e.amount for e in self.extras)
-        #loans = sum(l.get_payment() for l in self.loans)
+        # loans = sum(l.get_payment() for l in self.loans)
         #reintegros = sum(r.monto for r in self.reintegros if not r.pagado)
 
         for reintegro in self.reintegros:
@@ -238,10 +245,13 @@ class Affiliate(SQLObject):
 
         obligation = Zero
         obligation += sum(o.amount for o in obligations
-                          if not self.cotizacion.jubilados)
+                          if self.cotizacion.normal)
 
         obligation += sum(o.inprema for o in obligations
                           if self.cotizacion.jubilados)
+
+        obligation += sum(o.alternate for o in obligations
+                          if self.cotizacion.alternate)
 
         return obligation
 
@@ -259,13 +269,18 @@ class Affiliate(SQLObject):
 
             obligation += sum(o.inprema for o in obligations
                               if self.cotizacion.jubilados)
+
+            obligation += sum(o.amount for o in obligations
+                              if not self.cotizacion.alternate)
         else:
             obligation += sum(o.amount for o in obligations
                               if not self.cotizacion.jubilados)
 
-
             obligation += sum(o.inprema_compliment for o in obligations
                               if self.cotizacion.jubilados)
+
+            obligation += sum(o.amount_compliment for o in obligations
+                              if self.cotizacion.alternate)
 
         return obligation
 
@@ -400,7 +415,7 @@ class Affiliate(SQLObject):
 
         # en caso que el afiliado sea de afiliación más reciente que el año
         # solicitado
-        if table == None:
+        if table is None:
             return False
 
         return getattr(table, "month{0}".format(month))
@@ -411,7 +426,7 @@ class Affiliate(SQLObject):
 
     def get_phone(self):
 
-        if self.phone != None:
+        if self.phone is not None:
             phone = self.phone.replace('-', '').replace('/', '')
             if len(phone) > 11:
                 return phone[:11]
@@ -425,6 +440,23 @@ class Affiliate(SQLObject):
             return self.email
 
         return ""
+
+    def recibos(self):
+
+        return Recibo.selectBy(afiliado=self.id)
+
+    def recibos_sps(self):
+
+        return ReciboSPS.selectBy(afiliado=self.id)
+
+    def recibos_ceiba(self):
+
+        return ReciboCeiba.selectBy(afiliado=self.id)
+
+
+class Autorizacion(SQLObject):
+    affiliate = ForeignKey("Affiliate")
+    fecha = DateCol(default=date.today)
 
 
 class CuentaRetrasada(SQLObject):
@@ -519,6 +551,9 @@ class CuotaTable(SQLObject):
 
             elif self.affiliate.jubilated.year > self.year:
                 total = sum(o.amount for o in os)
+
+        elif self.affiliate.cotizacion.alternate:
+            total = sum(o.alternate for o in os)
 
         else:
             total = sum(o.amount for o in os)
@@ -823,6 +858,9 @@ class Loan(SQLObject):
     deductions = MultipleJoin("Deduction")
     aproval = ForeignKey("User")
     cobrar = BoolCol(default=True)
+    acumulado = CurrencyCol(default=0)
+    vence = DateCol(default=date.today)
+    vencidas = IntCol(default=0)
 
     def percent(self):
 
@@ -868,7 +906,7 @@ class Loan(SQLObject):
         """Calcula la cantidad de pagos que el :class:`Affiliate` no ha
         efectuado desde que se le otorgo el :class:`Loan`"""
 
-        #pagos = self.prediccion_pagos_actuales()
+        # pagos = self.prediccion_pagos_actuales()
         # Utilizar el número de pagos almacenado, para evitar calcular intereses
         # sobre cuotas pagadas y eliminadas accidentalmente.
         #total = pagos - self.number - 1
@@ -932,8 +970,8 @@ class Loan(SQLObject):
 
         """Obtiene el cobro a efectuar del prestamo"""
 
-        if self.debt < self.payment and self.number != self.months - 1:
-            return self.debt
+        # if self.debt < self.payment and self.number != self.months - 1:
+        #    return self.debt
 
         return self.payment
 
@@ -1003,7 +1041,7 @@ class Loan(SQLObject):
         # Decrease debt by the amount of the payed capital
         self.debt -= kw['capital']
         # Change the last payment date
-        #if day.date > self.last:
+        # if day.date > self.last:
         self.last = day
         # Register the payment in the database
         Pay(**kw)
@@ -1100,6 +1138,39 @@ class Loan(SQLObject):
         self.destroySelf()
 
         return payed
+
+    def vencimiento(self):
+
+        return self.startDate + relativedelta(months=+self.months)
+
+    def calcular_vencidas(self):
+
+        maximo = self.months - self.number
+        vencidas = (date.today() - self.startDate).days / 30
+
+        if vencidas > maximo:
+            vencidas = maximo
+
+        return vencidas
+
+    def interes_acumulado(self, meses):
+
+        debt = copy.copy(self.debt)
+        int_month = self.interest / 1200
+        total_interest = Zero
+        for n in range(0, meses):
+
+            if debt <= 0:
+                break
+
+            interest = Decimal(debt * int_month).quantize(dot01)
+            debt = debt + interest - self.payment
+            total_interest += interest
+
+        if total_interest < 0:
+            total_interest = -total_interest
+
+        return total_interest
 
     def future(self):
 
@@ -1240,9 +1311,15 @@ class Account(SQLObject):
 
     name = UnicodeCol()
     loan = BoolCol(default=False)
-
     extras = MultipleJoin("Extra")
     retrasadas = MultipleJoin("CuentaRetrasada")
+    distributions = MultipleJoin("Distribution")
+
+
+class Distribution(SQLObject):
+    account = ForeignKey("Account")
+    name = UnicodeCol()
+    amount = CurrencyCol(default=0)
 
 
 class Extra(SQLObject):
@@ -1457,6 +1534,7 @@ class Obligation(SQLObject):
     filiales = CurrencyCol(default=4, notNone=True)
     inprema_compliment = CurrencyCol(default=0, notNone=True)
     amount_compliment = CurrencyCol(default=0, notNone=True)
+    alternate = CurrencyCol(default=0, notNone=True)
 
 
 class ReportAccount(SQLObject):
@@ -1815,6 +1893,14 @@ class DeduccionBancaria(SQLObject):
     month = IntCol(default=date.today().month)
     year = IntCol(default=date.today().year)
 
+    def consolidar(self):
+
+        deducciones = DeduccionBancaria.selectBy(afiliado=self.afiliado,
+                                                 month=self.month, year=self.year,
+                                                 banco=self.banco)
+
+        return sum(d.amount for d in deducciones)
+
 
 class ReporteBancario(SQLObject):
     banco = ForeignKey("Banco")
@@ -1854,3 +1940,138 @@ class ReversionBancariaBanhcafe():
     cajero = UnicodeCol(length=10)
     terminal = UnicodeCol(length=10)
     cajero = UnicodeCol(length=10)
+
+
+class Recibo(SQLObject):
+    casa = ForeignKey("Casa")
+    afiliado = IntCol()
+    cliente = UnicodeCol()
+    dia = DateTimeCol()
+    # Marca si el recibo ya ha sido impreso
+    impreso = BoolCol()
+    ventas = MultipleJoin("Venta")
+
+    def total(self):
+        """Retorna el total de las ventas de un recibo"""
+
+        return sum(venta.valor() for venta in self.ventas)
+
+
+class Venta(SQLObject):
+    """Descripción de Venta
+
+    Contiene los datos sobre la venta de determinado producto en un recibo."""
+
+    recibo = ForeignKey("Recibo")
+    producto = ForeignKey("Producto")
+    descripcion = UnicodeCol()
+    cantidad = IntCol()
+    # No siempre el precio unitario esta determinado por el precio nominal de un
+    # producto, este puede cambiar como en el caso de los préstamos
+    unitario = CurrencyCol()
+
+    def valor(self):
+        """Retorna el total de una venta"""
+
+        return self.cantidad * self.unitario
+
+
+class Producto(SQLObject):
+    """Servicios u Objetos a la venta
+
+    Guarda los datos de productos que se tienen a la disposición de los
+    afiliados."""
+
+    nombre = UnicodeCol()
+    descripcion = UnicodeCol()
+
+
+class ReciboSPS(SQLObject):
+    class sqlmeta:
+        table = "recibo_sps"
+
+    casa = ForeignKey("Casa")
+    afiliado = IntCol()
+    cliente = UnicodeCol()
+    dia = DateTimeCol()
+    # Marca si el recibo ya ha sido impreso
+    impreso = BoolCol()
+    ventas = MultipleJoin("VentaSPS", joinColumn="recibo_id")
+
+    def total(self):
+        """Retorna el total de las ventas de un recibo"""
+
+        return sum(venta.valor() for venta in self.ventas)
+
+
+class VentaSPS(SQLObject):
+    """Descripción de Venta
+
+    Contiene los datos sobre la venta de determinado producto en un recibo."""
+    class sqlmeta:
+        table = "venta_sps"
+
+    recibo = ForeignKey("ReciboSPS")
+    producto = ForeignKey("Producto")
+    descripcion = UnicodeCol()
+    cantidad = IntCol()
+    # No siempre el precio unitario esta determinado por el precio nominal de un
+    # producto, este puede cambiar como en el caso de los préstamos
+    unitario = CurrencyCol()
+
+    def valor(self):
+        """Retorna el total de una venta"""
+
+        return self.cantidad * self.unitario
+
+
+class ReciboCeiba(SQLObject):
+    class sqlmeta:
+        table = "recibo_ceiba"
+
+    casa = ForeignKey("Casa")
+    afiliado = IntCol()
+    cliente = UnicodeCol()
+    dia = DateTimeCol()
+    # Marca si el recibo ya ha sido impreso
+    impreso = BoolCol()
+    ventas = MultipleJoin("VentaCeiba", joinColumn="recibo_id")
+
+    def total(self):
+        """Retorna el total de las ventas de un recibo"""
+
+        return sum(venta.valor() for venta in self.ventas)
+
+
+class VentaCeiba(SQLObject):
+    """Descripción de Venta
+
+    Contiene los datos sobre la venta de determinado producto en un recibo."""
+    class sqlmeta:
+        table = "venta_ceiba"
+
+    recibo = ForeignKey("ReciboCeiba")
+    producto = ForeignKey("Producto")
+    descripcion = UnicodeCol()
+    cantidad = IntCol()
+    # No siempre el precio unitario esta determinado por el precio nominal de un
+    # producto, este puede cambiar como en el caso de los préstamos
+    unitario = CurrencyCol()
+
+    def valor(self):
+        """Retorna el total de una venta"""
+
+        return self.cantidad * self.unitario
+
+
+class Rechazo(SQLObject):
+    """Permite registrar la razón de un rechazo de débito automático"""
+    affiliate = ForeignKey("Affiliate")
+    reason = UnicodeCol()
+    day = DateCol(default=date.today)
+
+
+class TramiteBeneficio(SQLObject):
+    partida = BoolCol(default=False)
+    renuncia = BoolCol(default=False)
+

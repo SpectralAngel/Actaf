@@ -26,13 +26,16 @@ class Actualizador(object):
     :class:`Ingreso` registrando los motivos por los cuales se efectuó un
     determinado cobro"""
 
-    def __init__(self, obligacion, accounts, day, banco, cobro):
+    def __init__(self, obligacion, accounts, day, banco, cobro,
+                 jubilados, alternativos):
 
         self.obligacion = obligacion
         self.cuentas = accounts
         self.day = day
         self.banco = banco
         self.cobro = cobro
+        self.jubilados = jubilados
+        self.alternativos = alternativos
         self.registro = dict()
 
     def registrar_cuenta(self, account, name):
@@ -53,12 +56,11 @@ class Actualizador(object):
 
         """Actualiza el estado de cuenta de acuerdo a un :class:`Ingreso`"""
 
-        self.cuota(ingreso)
-        self.aditional(ingreso)
-
-    def update_compliment(self, ingreso):
-
-        self.complemento(ingreso)
+        if ingreso.afiliado.cotizacion.jubilados or \
+                ingreso.afiliado.cotizacion.alternate:
+            self.complemento(ingreso)
+        else:
+            self.cuota(ingreso)
         self.aditional(ingreso)
 
     def cuota(self, ingreso):
@@ -68,7 +70,7 @@ class Actualizador(object):
         if ingreso.cantidad >= self.obligacion:
             self.cuentas[self.registro['cuota']]['amount'] += self.obligacion
             self.cuentas[self.registro['cuota']]['number'] += 1
-            #afiliado = database.get_affiliate(ingreso.afiliado.id)
+            # afiliado = database.get_affiliate(ingreso.afiliado.id)
             ingreso.afiliado.pay_cuota(self.day.year, self.day.month)
             ingreso.cantidad -= self.obligacion
             database.create_bank_deduction(ingreso.afiliado, self.obligacion,
@@ -150,14 +152,20 @@ class Actualizador(object):
 
     def complemento(self, ingreso):
 
-        if ingreso.cantidad >= self.obligacion:
-            self.cuentas[self.registro['cuota']]['amount'] += self.obligacion
-            self.cuentas[self.registro['cuota']]['number'] += 1
+        if ingreso.afiliado.cotizacion.alternate:
+            complemento = self.alternativos
+        if ingreso.afiliado.cotizacion.jubilados:
+            complemento = self.jubilados
+
+        if ingreso.cantidad >= complemento:
+            self.cuentas[self.registro['complemento']]['amount'] += complemento
+            self.cuentas[self.registro['complemento']]['number'] += 1
             ingreso.afiliado.pay_compliment(self.day.year, self.day.month)
-            ingreso.cantidad -= self.obligacion
-            database.create_bank_deduction(ingreso.afiliado, self.obligacion,
-                                           self.registro['cuota'], self.banco,
-                                           self.day, self.cobro)
+            ingreso.cantidad -= complemento
+            database.create_bank_deduction(ingreso.afiliado, complemento,
+                                           self.registro['complemento'],
+                                           self.banco,
+                                           self.day)
 
 
 class Parser(object):
@@ -177,7 +185,7 @@ class Occidente(Parser):
         super(Occidente, self).__init__(fecha, archivo, banco)
 
     def output(self):
-        self.analizador = core.AnalizadorCSV(self.archivo, self.afiliados)
+        self.analizador = core.AnalizadorCSV(self.archivo, self.afiliados, True)
         return self.analizador.parse()
 
 

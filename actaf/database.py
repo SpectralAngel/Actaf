@@ -30,7 +30,7 @@ def get_affiliate(afiliacion):
 
     try:
         return Affiliate.get(afiliacion)
-    except:
+    except SQLObjectNotFound:
         return None
 
 

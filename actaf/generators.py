@@ -55,7 +55,7 @@ class Generator(object):
                  str(a.get_monthly(self.fecha, True)),
                  str(0),
                  str(0),
-                 str(a.get_monthly()),
+                 str(a.get_monthly(self.fecha, True)),
                 ]
                 for a in self.afiliados)
         line = filter((lambda l: l[0] != None and l[1] != None and l[2] != None and l[3] != None), line)
@@ -73,7 +73,7 @@ class Generator(object):
                  ]
                 for a in self.afiliados)
         line = filter((lambda l: l[0] != None and l[1] != None and l[2] != None and l[3] != None), line)
-        planilla = unicodecsv.UnicodeWriter(open(u'COPEMH.csv', 'wb'))
+        planilla = unicodecsv.UnicodeWriter(open(u'COPEMH-cobros.csv', 'wb'))
         map((lambda l: planilla.writerow(l)), line)
 
 
@@ -237,11 +237,6 @@ class DaVivienda(Generator):
     def __init__(self, banco, afiliados, fecha):
         super(DaVivienda, self).__init__(banco, afiliados, fecha)
 
-    def output(self):
-        print(self.banco.nombre)
-
-        self.davivienda()
-
 
 class Pais(Generator):
     def __init__(self, banco, afiliados, fecha):
@@ -253,8 +248,10 @@ class Pais(Generator):
                  a.cardID.replace('-', ''),
                  u"{0} {1}".format(a.firstName, a.lastName),
                  str(a.cuenta),
-                 "",
-                 str(a.get_monthly(self.fecha, True))] for a in self.afiliados)
+                 str(a.bancario),
+                 str(a.get_monthly(self.fecha, True)),
+                 str(a.last)] for a in self.afiliados
+                if a.autorizacion)
 
         line = filter((lambda l: l[0] != None and l[1] != None and l[
             2] is not None and l[3] is not None),
