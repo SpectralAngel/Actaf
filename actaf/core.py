@@ -81,12 +81,12 @@ class AnalizadorCSV(object):
     def __init__(self, filename, affiliates, byID=False):
 
         self.reader = csv.reader(open(filename))
-        self.affiliates = dict()
-        self.parsed = list()
+        self.affiliates = {}
+        self.parsed = []
         self.perdidos = 0
         self.byID = byID
         if not byID:
-            affiliates = filter((lambda a: a.cardID != None), affiliates)
+            affiliates = filter((lambda a: a.cardID is not None), affiliates)
             for a in affiliates:
                 self.affiliates[a.cardID.replace('-', '')] = a
         self.preparse = defaultdict(Decimal)
@@ -116,7 +116,7 @@ class AnalizadorCSV(object):
                     row[0]))
         else:
             identidad = '{0:013d}'.format(int(row[0].replace('-', '')))
-            if not identidad in self.affiliates:
+            if identidad not in self.affiliates:
                 self.perdidos += 1
                 print("Error de parseo no se encontro la identidad {0}".format(
                     identidad))
