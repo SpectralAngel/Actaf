@@ -970,8 +970,8 @@ class Loan(SQLObject):
 
         """Obtiene el cobro a efectuar del prestamo"""
 
-        # if self.debt < self.payment and self.number != self.months - 1:
-        #    return self.debt
+        if self.debt < self.payment and self.number != self.months - 1:
+            return self.debt
 
         return self.payment
 
