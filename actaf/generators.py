@@ -36,11 +36,11 @@ class Generator(object):
 
     def output(self):
         print(self.banco.nombre)
-        line = ([str(a.id),
+        line = ([unicode(a.id),
                  u"{0} {1}".format(a.firstName, a.lastName),
                  a.cardID,
-                 str(a.get_monthly(self.fecha, True)),
-                 str(a.cuenta)] for a in self.afiliados)
+                 unicode(a.get_monthly(self.fecha, True)),
+                 unicode(a.cuenta)] for a in self.afiliados)
         line = filter((lambda l: l[0] != None and l[1] != None and l[
             2] is not None and l[3] is not None),
                       line)
@@ -49,13 +49,13 @@ class Generator(object):
         map((lambda l: planilla.writerow(l)), line)
 
     def davivienda(self):
-        line = ([str(a.id),
+        line = ([unicode(a.id),
                  a.cardID.replace('-', ''),
                  u"{0} {1}".format(a.firstName, a.lastName),
-                 str(a.get_monthly(self.fecha, True)),
-                 str(0),
-                 str(0),
-                 str(a.get_monthly(self.fecha, True)),
+                 unicode(a.get_monthly(self.fecha, True)),
+                 unicode(0),
+                 unicode(0),
+                 unicode(a.get_monthly(self.fecha, True)),
                 ]
                 for a in self.afiliados)
         line = filter((lambda l: l[0] != None and l[1] != None and l[2] != None and l[3] != None), line)
@@ -63,13 +63,13 @@ class Generator(object):
         map((lambda l: planilla.writerow(l)), line)
 
     def cobros(self):
-        line = ([str(a.id),
+        line = ([unicode(a.id),
                  a.cardID.replace('-', ''),
                  u"{0} {1}".format(a.firstName, a.lastName),
-                 str(a.get_monthly(self.fecha)),
-                 str(a.get_phone()),
-                 str(a.get_email()),
-                 str(a.get_monthly()),
+                 unicode(a.get_monthly(self.fecha)),
+                 unicode(a.get_phone()),
+                 unicode(a.get_email()),
+                 unicode(a.get_monthly()),
                  ]
                 for a in self.afiliados)
         line = filter((lambda l: l[0] != None and l[1] != None and l[2] != None and l[3] != None), line)
@@ -273,7 +273,8 @@ class Ficensa(Generator):
         charges = list()
 
         for afiliado in self.afiliados:
-
+            if not afiliado.autorizacion:
+                continue
             nombre_afiliado = u"{0} {1}".format(afiliado.firstName,
                                                 afiliado.lastName)
             if len(nombre_afiliado) > 40:
