@@ -214,7 +214,10 @@ class Affiliate(SQLObject):
 
         return Banco.get(self.banco)
 
-    def get_monthly(self, day=date.today(), bank=False):
+    def get_monthly(self, day=date.today(), bank=False, loan_only=True):
+
+        if loan_only:
+            return self.get_prestamo()
 
         """Obtiene el pago mensual que debe efectuar el afiliado"""
         total = sum(e.amount for e in self.extras)
@@ -1806,6 +1809,7 @@ class Banco(SQLObject):
     generator = UnicodeCol(length=100, default=None)
     cuenta = UnicodeCol(length=100, default=None)
     codigo = UnicodeCol(length=100, default=None)
+    cuota = BoolCol(default=True)
     depositos = MultipleJoin("Deposito")
     depositosAnonimos = MultipleJoin("DepositoAnonimo")
 

@@ -52,15 +52,15 @@ class Actualizador(object):
         if ingreso.cantidad > 0:
             self.excedente(ingreso)
 
-    def update(self, ingreso):
+    def update(self, ingreso, cuota=True):
 
         """Actualiza el estado de cuenta de acuerdo a un :class:`Ingreso`"""
-
-        if ingreso.afiliado.cotizacion.jubilados or \
-                ingreso.afiliado.cotizacion.alternate:
-            self.complemento(ingreso)
-        else:
-            self.cuota(ingreso)
+        if cuota:
+            if ingreso.afiliado.cotizacion.jubilados or \
+                    ingreso.afiliado.cotizacion.alternate:
+                self.complemento(ingreso)
+            else:
+                self.cuota(ingreso)
         self.aditional(ingreso)
 
     def cuota(self, ingreso):

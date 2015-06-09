@@ -28,8 +28,9 @@ import model
 
 class Generator(object):
     def __init__(self, banco, afiliados, fecha):
-        self.afiliados = filter((lambda
-                                         a: a.cardID != None and a.firstName != None and a.lastName != None),
+        self.afiliados = filter((lambda a: a.cardID is not None and
+                                           a.firstName is not None
+                                           and a.lastName is not None),
                                 afiliados)
         self.fecha = fecha
         self.banco = banco
@@ -41,9 +42,8 @@ class Generator(object):
                  a.cardID,
                  unicode(a.get_monthly(self.fecha, True)),
                  unicode(a.cuenta)] for a in self.afiliados)
-        line = filter((lambda l: l[0] != None and l[1] != None and l[
-            2] is not None and l[3] is not None),
-                      line)
+        line = filter((lambda l: l[0] is not None and l[1] is not None and
+                                 l[2] is not None and l[3] is not None), line)
         planilla = unicodecsv.UnicodeWriter(
             open(u'{0}.csv'.format(self.banco.nombre + str(self.fecha)), 'wb'))
         map((lambda l: planilla.writerow(l)), line)
@@ -56,9 +56,10 @@ class Generator(object):
                  unicode(0),
                  unicode(0),
                  unicode(a.get_monthly(self.fecha, True)),
-                ]
+                 ]
                 for a in self.afiliados)
-        line = filter((lambda l: l[0] != None and l[1] != None and l[2] != None and l[3] != None), line)
+        line = filter((lambda l: l[0] is not None and l[1] is not None and
+                                 l[2] is not None and l[3] is not None), line)
         planilla = unicodecsv.UnicodeWriter(open(u'COPEMH.csv', 'wb'))
         map((lambda l: planilla.writerow(l)), line)
 
@@ -72,7 +73,8 @@ class Generator(object):
                  unicode(a.get_monthly()),
                  ]
                 for a in self.afiliados)
-        line = filter((lambda l: l[0] != None and l[1] != None and l[2] != None and l[3] != None), line)
+        line = filter((lambda l: l[0] is not None and l[1] is not None and
+                                 l[2] is not None and l[3] is not None), line)
         planilla = unicodecsv.UnicodeWriter(open(u'COPEMH-cobros.csv', 'wb'))
         map((lambda l: planilla.writerow(l)), line)
 
@@ -105,7 +107,8 @@ class Occidente(Generator):
                 self.fecha.year,
                 self.fecha.month,
                 self.fecha.day,
-                int(afiliado.get_monthly(self.fecha_cuota, True) * Decimal("100"))
+                int(afiliado.get_monthly(self.fecha_cuota, True) * Decimal(
+                    "100"))
             )
             )
 
@@ -253,8 +256,8 @@ class Pais(Generator):
                  str(a.last)] for a in self.afiliados
                 if a.autorizacion)
 
-        line = filter((lambda l: l[0] != None and l[1] != None and l[
-            2] is not None and l[3] is not None),
+        line = filter((lambda l: l[0] is not None and l[1] is not None and
+                                 l[2] is not None and l[3] is not None),
                       line)
         planilla = unicodecsv.UnicodeWriter(
             open(u'{0}.csv'.format(self.banco.nombre + str(self.fecha)), 'wb'))
@@ -337,4 +340,20 @@ class UPN(Generator):
 
         planilla = unicodecsv.UnicodeWriter(
             open(u'UPN{0}.csv'.format(str(self.fecha)), 'wb'))
+        map((lambda l: planilla.writerow(l)), line)
+
+
+class Trabajadores(Generator):
+    def output(self):
+        print(self.banco.nombre)
+        line = ([unicode(a.id),
+                 u"{0} {1}".format(a.firstName, a.lastName),
+                 a.cardID,
+                 unicode(a.get_monthly(self.fecha, True, True)),
+                 u'50',
+                 unicode(a.cuenta)] for a in self.afiliados)
+        line = filter((lambda l: l[0] is not None and l[1] is not None and
+                                 l[2] is not None and l[3] is not None), line)
+        planilla = unicodecsv.UnicodeWriter(
+            open(u'{0}.csv'.format(self.banco.nombre + str(self.fecha)), 'wb'))
         map((lambda l: planilla.writerow(l)), line)

@@ -21,9 +21,10 @@
 
 import argparse
 from datetime import datetime
+from decimal import Decimal
+
 import database
 import parsers
-from decimal import Decimal
 
 if __name__ == "__main__":
 
@@ -63,4 +64,4 @@ if __name__ == "__main__":
     updater.registrar_cuenta(database.get_inprema_account(), 'complemento')
     print(u"Actualizando {0}".format(banco.nombre))
 
-    map((lambda i: updater.update(i)), parsed)
+    map((lambda i: updater.update(i, banco.cuota)), parsed)
