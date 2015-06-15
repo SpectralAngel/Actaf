@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf8 -*-
 #
-# comasol.py
+# reversion.py
 #
-# Copyright 2013 by Carlos Flores <cafg10@gmail.com>
+# Copyright 2013-2015 by Carlos Flores <cafg10@gmail.com>
 # This file is part of Actaf.
 #
 # Actaf is free software: you can redistribute it and/or modify
@@ -18,35 +18,35 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Actaf.  If not, see <http://www.gnu.org/licenses/>.
-from decimal import Decimal
-
 import database
+from multiprocessing import Pool
 import argparse
 from datetime import datetime
 
-account = database.get_inprema_account()
-
 
 def revertir(afiliado, day):
-    #print("Revirtiendo afiliado {0}".format(afiliado.id))
+    print("Revirtiendo {0}".format(afiliado.id))
 
     for loan in afiliado.loans:
 
         for pay in loan.pays:
 
-            if pay.day == day and pay.receipt == 'Planilla' and pay.amount == Decimal('178.68'):
+            if pay.day == day and pay.receipt == 'Planilla':
                 print("Revirtiendo pago {0}".format(pay.id))
                 pay.revert()
                 loan.reconstruirSaldo()
 
+
+
     for deduced in afiliado.deduccionesBancarias:
-        if deduced.year == day.year and deduced.month == day.month and deduced.amount == Decimal('178.68'):
-            print(
-                "Revisando deduccion {0} {1} {2}".format(deduced.id,
-                                                         deduced.month,
-                                                         deduced.year))
+        print(
+            "Revisando deduccion {0} {1} {2}".format(deduced.id, deduced.month,
+                                                     deduced.year))
+        if deduced.year == day.year and deduced.month == day.month:
             print("Revirtiendo deduccion {0}".format(deduced.id))
-            deduced.account = account
+            if deduced.account.id == 1:
+                afiliado.remove_cuota(day.year, day.month)
+            deduced.destroySelf()
 
 
 if __name__ == "__main__":
@@ -62,5 +62,5 @@ if __name__ == "__main__":
 
     afiliados = database.get_affiliates_by_banco(banco, True)
 
-    for a in afiliados:
-        revertir(a, fecha)
+    for afiliado in afiliados:
+        revertir(afiliado, fecha)
