@@ -214,7 +214,7 @@ class Affiliate(SQLObject):
 
         return Banco.get(self.banco)
 
-    def get_monthly(self, day=date.today(), bank=False, loan_only=True):
+    def get_monthly(self, day=date.today(), bank=False, loan_only=False):
 
         if loan_only:
             return self.get_prestamo()
@@ -439,7 +439,7 @@ class Affiliate(SQLObject):
 
     def get_email(self):
 
-        if self.email != None:
+        if self.email is not None:
             return self.email
 
         return ""
@@ -571,7 +571,7 @@ class CuotaTable(SQLObject):
             inicio, fin = self.periodo()
             periodo = range(inicio, fin)
 
-        if not mes in periodo:
+        if mes not in periodo:
             return Zero
 
         if not getattr(self, 'month{0}'.format(mes)):
@@ -752,7 +752,7 @@ class AutoSeguro(SQLObject):
             inicio, fin = self.periodo()
             periodo = range(inicio, fin)
 
-        if not mes in periodo:
+        if mes not in periodo:
             return Zero
 
         if not getattr(self, 'month{0}'.format(mes)):
@@ -1849,7 +1849,7 @@ class Inscripcion(SQLObject):
 
         """Obtiene el monto a pagar por concepto de viaticos"""
 
-        if self.asamblea.fecha == None or self.ingresado == None:
+        if self.asamblea.fecha is None or self.ingresado is None:
             return self.viatico.monto
 
         if self.ingresado < self.asamblea.fecha:
@@ -1900,7 +1900,7 @@ class DeduccionBancaria(SQLObject):
     def consolidar(self):
 
         deducciones = DeduccionBancaria.selectBy(afiliado=self.afiliado,
-                                                 month=self.month, year=self.year,
+                                                 month=self.month,year=self.year,
                                                  banco=self.banco)
 
         return sum(d.amount for d in deducciones)

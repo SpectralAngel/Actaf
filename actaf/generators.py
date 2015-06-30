@@ -177,10 +177,11 @@ class Atlantida(Generator):
 
 
 class INPREMA(Generator):
-    def __init__(self, afiliados, fecha):
+    def __init__(self, afiliados, fecha, append=False):
 
         super(INPREMA, self).__init__(None, afiliados, fecha)
         self.format = u"{0:4d}{1:02d}{2:13}00011{3:013}\n"
+        self.append = append
 
     def output(self):
 
@@ -212,11 +213,14 @@ class INPREMA(Generator):
                 str(afiliado.get_prestamo())))
             charges.append(salida)
 
+        mode = 'wb'
+        if self.append:
+            mode = 'ua'
         planilla = unicodecsv.UnicodeWriter(
-            open(u'INPREMA{0}.csv'.format(str(self.fecha)), 'wb'),
+            open(u'INPREMA{0}.csv'.format(str(self.fecha)), mode),
             quoting=csv.QUOTE_ALL)
         prestamos = unicodecsv.UnicodeWriter(
-            open(u'INPREMA{0}-prestamo.csv'.format(str(self.fecha)), 'wb'),
+            open(u'INPREMA{0}-prestamo.csv'.format(str(self.fecha)), mode),
             quoting=csv.QUOTE_ALL)
         map((lambda l: planilla.writerow(l)), line)
         map((lambda l: prestamos.writerow(l)), loan)
@@ -352,8 +356,11 @@ class Trabajadores(Generator):
                  unicode(a.get_monthly(self.fecha, True, True)),
                  u'50',
                  unicode(a.cuenta)] for a in self.afiliados)
-        line = filter((lambda l: l[0] is not None and l[1] is not None and
-                                 l[2] is not None and l[3] is not None), line)
+
+        line = [l for l in line if l[0] is not None and l[1] is not None and
+                l[2] is not None and l[3] is not None]
+
         planilla = unicodecsv.UnicodeWriter(
             open(u'{0}.csv'.format(self.banco.nombre + str(self.fecha)), 'wb'))
-        map((lambda l: planilla.writerow(l)), line)
+
+        [planilla.writerow(l) for l in line]

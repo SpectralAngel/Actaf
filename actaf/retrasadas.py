@@ -102,3 +102,7 @@ if __name__ == '__main__':
     retrasadas = procesar_retrasadas(1)
     print("Creando extras")
     map(creacion, retrasadas)
+    retrasadas = procesar_retrasadas(10)
+    map(creacion, retrasadas)
+    retrasadas = procesar_retrasadas(3)
+    map(creacion, retrasadas)

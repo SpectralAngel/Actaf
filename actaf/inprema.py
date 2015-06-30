@@ -32,6 +32,11 @@ def extraer_cambios(fecha):
     generator = INPREMA(affiliates, fecha)
     generator.output()
 
+    affiliates = database.get_affiliates_by_payment(11, True)
+
+    generator = INPREMA(affiliates, fecha, append=True)
+    generator.output()
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
