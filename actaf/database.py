@@ -19,6 +19,7 @@
 # along with Actaf.  If not, see <http://www.gnu.org/licenses/>.
 
 from model import *
+from sqlobject.sqlbuilder import AND
 
 
 def obtener_conexion():
