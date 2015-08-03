@@ -23,7 +23,6 @@ from sqlobject import (SQLObject, UnicodeCol, StringCol, DateCol, CurrencyCol,
                        MultipleJoin, ForeignKey, IntCol, DecimalCol, BoolCol,
                        DatabaseIndex, SQLObjectNotFound, connectionForURI,
                        DateTimeCol, RelatedJoin, sqlhub)
-from sqlobject.sqlbuilder import AND
 from decimal import Decimal
 from datetime import date, datetime
 import math
@@ -222,7 +221,7 @@ class Affiliate(SQLObject):
         """Obtiene el pago mensual que debe efectuar el afiliado"""
         total = sum(e.amount for e in self.extras)
         # loans = sum(l.get_payment() for l in self.loans)
-        #reintegros = sum(r.monto for r in self.reintegros if not r.pagado)
+        # reintegros = sum(r.monto for r in self.reintegros if not r.pagado)
 
         for reintegro in self.reintegros:
             if reintegro.pagado:
@@ -912,12 +911,12 @@ class Loan(SQLObject):
         # pagos = self.prediccion_pagos_actuales()
         # Utilizar el número de pagos almacenado, para evitar calcular intereses
         # sobre cuotas pagadas y eliminadas accidentalmente.
-        #total = pagos - self.number - 1
+        # total = pagos - self.number - 1
 
-        #if total < 0:
+        # if total < 0:
         #    return 0
 
-        #return total
+        # return total
         pagos = self.__pago_retrasado() / self.payment
         if pagos < 0:
             return 0
@@ -1361,6 +1360,7 @@ class Extra(SQLObject):
         kw['amount'] = self.amount
         kw['affiliate'] = self.affiliate
         kw['account'] = self.account
+        kw['cotizacion'] = self.affiliate.cotizacion
         kw['month'] = day.month
         kw['year'] = day.year
 
@@ -1368,7 +1368,7 @@ class Extra(SQLObject):
 
             cuota = self.affiliate.get_delayed()
             month, year = (None, None)
-            if not cuota is None:
+            if cuota is not None:
                 month = cuota.delayed()
                 year = cuota.year
                 cuota.pay_month(month)
@@ -1391,7 +1391,7 @@ class Extra(SQLObject):
 
             cuota = self.affiliate.get_delayed()
             month, year = (None, None)
-            if not cuota is None:
+            if cuota is not None:
                 month = cuota.delayed()
                 year = cuota.year
                 cuota.pay_month(month)
@@ -1562,6 +1562,7 @@ class PostReport(SQLObject):
 
 class Deduced(SQLObject):
     affiliate = ForeignKey("Affiliate")
+    cotizacion = ForeignKey("Cotizacion")
     amount = CurrencyCol(default=0)
     account = ForeignKey("Account")
     detail = UnicodeCol(default="")
@@ -1631,7 +1632,7 @@ class Solicitud(SQLObject):
         kw['months'] = self.periodo
         kw['last'] = self.entrega
         kw['startDate'] = self.entrega
-        #kw['letters'] = wording.parse(self.monto).capitalize()
+        # kw['letters'] = wording.parse(self.monto).capitalize()
         kw['number'] = 0
         prestamo = Loan(**kw)
         prestamo.start()
@@ -1898,9 +1899,9 @@ class DeduccionBancaria(SQLObject):
     year = IntCol(default=date.today().year)
 
     def consolidar(self):
-
         deducciones = DeduccionBancaria.selectBy(afiliado=self.afiliado,
-                                                 month=self.month,year=self.year,
+                                                 month=self.month,
+                                                 year=self.year,
                                                  banco=self.banco)
 
         return sum(d.amount for d in deducciones)
@@ -2012,6 +2013,7 @@ class VentaSPS(SQLObject):
     """Descripción de Venta
 
     Contiene los datos sobre la venta de determinado producto en un recibo."""
+
     class sqlmeta:
         table = "venta_sps"
 
@@ -2051,6 +2053,7 @@ class VentaCeiba(SQLObject):
     """Descripción de Venta
 
     Contiene los datos sobre la venta de determinado producto en un recibo."""
+
     class sqlmeta:
         table = "venta_ceiba"
 
@@ -2078,4 +2081,3 @@ class Rechazo(SQLObject):
 class TramiteBeneficio(SQLObject):
     partida = BoolCol(default=False)
     renuncia = BoolCol(default=False)
-

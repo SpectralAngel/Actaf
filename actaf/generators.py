@@ -215,7 +215,7 @@ class INPREMA(Generator):
 
         mode = 'wb'
         if self.append:
-            mode = 'ua'
+            mode = 'a'
         planilla = unicodecsv.UnicodeWriter(
             open(u'INPREMA{0}.csv'.format(str(self.fecha)), mode),
             quoting=csv.QUOTE_ALL)

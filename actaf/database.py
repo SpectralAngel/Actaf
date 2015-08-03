@@ -127,7 +127,8 @@ def efectuar_pago(loan, amount, day, method='Planilla'):
 
 def create_deduction(affiliate, amount, account, day=date.today()):
     return Deduced(affiliate=affiliate, account=account, amount=amount,
-                   month=day.month, year=day.year)
+                   month=day.month, year=day.year,
+                   cotizacion=affiliate.cotizacion)
 
 
 def create_bank_deduction(affiliate, amount, account, banco, day=date.today(),
