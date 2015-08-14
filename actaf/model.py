@@ -612,7 +612,7 @@ class CuotaTable(SQLObject):
 
     def delayed(self):
 
-        if self.affiliate.joined == None:
+        if self.affiliate.joined is None:
             return Zero
 
         """Obtiene el primer mes en el que no se haya efectuado un pago en las
@@ -621,6 +621,8 @@ class CuotaTable(SQLObject):
 
         inicio, fin = self.periodo(retrasada=True)
         for n in range(inicio, fin):
+            if self.year == 2015 and n == 5:
+                return Zero
             if not getattr(self, 'month{0}'.format(n)):
                 return n
 
