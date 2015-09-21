@@ -1,0 +1,4 @@
+FormEncode
+MySQL-python
+python-dateutil==1.5
+SQLObject
