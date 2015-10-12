@@ -85,7 +85,7 @@ class Actualizador(object):
             ingreso.cantidad -= reintegro.monto
             self.cuentas[reintegro.cuenta]['amount'] += reintegro.monto
             self.cuentas[reintegro.cuenta]['number'] += 1
-            reintegro.deduccion_bancaria(self.day, self.cobro)
+            reintegro.deduccion_bancaria(self.cobro, self.self.day)
 
     def procesar_extra(self, extra, ingreso, disminuir=False):
 
@@ -137,7 +137,7 @@ class Actualizador(object):
             ingreso.cantidad -= payment
             database.create_bank_deduction(ingreso.afiliado, payment,
                                            self.registro['prestamo'],
-                                           self.banco, self.day)
+                                           self.banco, self.day, self.cobro)
         # Cobrar lo que queda en las deducciones y marcalo como cuota incompleta
         # de prestamo
         else:

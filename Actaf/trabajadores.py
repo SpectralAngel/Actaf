@@ -1,9 +1,10 @@
 import database
 import csv
 
-def obtener_afiliado(afiliado):
 
+def obtener_afiliado(afiliado):
     return database.get_affiliate(int(afiliado[0]))
+
 
 if __name__ == '__main__':
     banco = database.Banco.get(1001060)
@@ -42,5 +43,6 @@ if __name__ == '__main__':
             "2",
             "2",
             str(montos[identidad]),
-            "{0} {1} {2}".format(afiliado.id, afiliado.firstName, afiliado.lastName)
+            "{0} {1} {2}".format(afiliado.id, afiliado.firstName,
+                                 afiliado.lastName)
         ])
