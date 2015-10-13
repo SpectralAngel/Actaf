@@ -215,10 +215,11 @@ class Affiliate(SQLObject):
 
     def get_monthly(self, day=date.today(), bank=False, loan_only=False):
 
+        """Obtiene el pago mensual que debe efectuar el afiliado"""
+
         if loan_only:
             return self.get_prestamo()
 
-        """Obtiene el pago mensual que debe efectuar el afiliado"""
         total = sum(e.amount for e in self.extras)
         # loans = sum(l.get_payment() for l in self.loans)
         # reintegros = sum(r.monto for r in self.reintegros if not r.pagado)
@@ -405,9 +406,9 @@ class Affiliate(SQLObject):
 
     def remove(self):
 
-        (table.destroySelf() for table in self.cuotaTables)
+        [table.destroySelf() for table in self.cuotaTables]
 
-        (loan.remove() for loan in self.loans)
+        [loan.remove() for loan in self.loans]
 
         self.destroySelf()
 
@@ -566,7 +567,7 @@ class CuotaTable(SQLObject):
 
         """Muestra la cantidad pagada en el mes especificado"""
 
-        if periodo == None:
+        if periodo is None:
             inicio, fin = self.periodo()
             periodo = range(inicio, fin)
 
@@ -765,7 +766,7 @@ class AutoSeguro(SQLObject):
 
         """Muestra la cantidad debida en el mes especificado"""
 
-        if periodo == None:
+        if periodo is None:
             inicio, fin = self.periodo()
             periodo = range(inicio, fin)
 
@@ -1543,7 +1544,7 @@ class Obligation(SQLObject):
 
 
 class ReportAccount(SQLObject):
-    name = name = UnicodeCol(length=100)
+    name = UnicodeCol(length=100)
     quantity = IntCol()
     amount = CurrencyCol(default=0)
     postReport = ForeignKey("PostReport")
