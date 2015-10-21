@@ -20,6 +20,7 @@
 from decimal import Decimal
 import csv
 from collections import defaultdict
+from sqlobject import sqlhub
 
 import database
 import retrasadas
@@ -224,14 +225,21 @@ class Actualizador(object):
     def update(self, ingreso):
 
         """Actualiza el estado de cuenta de acuerdo a un :class:`Ingreso`"""
+        conn = sqlhub.getConnection()
+        transaction = conn.transaction()
+        sqlhub.processConnection = transaction
+        try:
+            ingreso.afiliado.last = ingreso.cantidad
 
-        ingreso.afiliado.last = ingreso.cantidad
-
-        if ingreso.cantidad == complemento:
-            self.complemento(ingreso)
-        else:
-            self.cuota(ingreso)
-        self.aditional(ingreso)
+            if ingreso.cantidad == complemento:
+                self.complemento(ingreso)
+            else:
+                self.cuota(ingreso)
+            self.aditional(ingreso)
+            transaction.commit()
+        except Exception:
+            transaction.rollback()
+            raise
 
     def cuota(self, ingreso):
 
