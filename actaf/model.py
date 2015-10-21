@@ -522,27 +522,31 @@ class CuotaTable(SQLObject):
         total = Zero
         os = Obligation.selectBy(year=self.year, month=mes)
 
-        if (self.affiliate.cotizacion.jubilados and
-                not self.affiliate.jubilated is None):
+        if self.affiliate.cotizacion.jubilados \
+                and self.affiliate.jubilated is not None:
 
             if self.affiliate.jubilated.year < self.year:
-                total = sum(o.inprema for o in os)
+                total = os.sum('inprema')
 
             elif self.affiliate.jubilated.year == self.year:
-                total += sum(o.amount for o in os
-                             if mes < self.affiliate.jubilated.month)
+                if mes < self.affiliate.jubilated.month:
+                    amount_jubilated = os.sum('amount')
+                    if amount_jubilated is not None:
+                        total += amount_jubilated
 
-                total += sum(o.inprema for o in os
-                             if mes >= self.affiliate.jubilated.month)
+                if mes >= self.affiliate.jubilated.month:
+                    amount_jubilated = os.sum('inprema')
+                    if amount_jubilated is not None:
+                        total += amount_jubilated
 
             elif self.affiliate.jubilated.year > self.year:
-                total = sum(o.amount for o in os)
+                total = os.sum('amount')
 
         elif self.affiliate.cotizacion.alternate:
-            total = sum(o.alternate for o in os)
+            total = os.sum('alternate')
 
         else:
-            total = sum(o.amount for o in os)
+            total = os.sum('amount')
 
         return total
 
@@ -550,11 +554,11 @@ class CuotaTable(SQLObject):
 
         """Muestra la cantidad pagada en el mes especificado"""
 
-        if periodo == None:
+        if periodo is None:
             inicio, fin = self.periodo()
             periodo = range(inicio, fin)
 
-        if not mes in periodo:
+        if mes not in periodo:
             return Zero
 
         if not getattr(self, 'month{0}'.format(mes)):
@@ -566,11 +570,11 @@ class CuotaTable(SQLObject):
 
         """Muestra la cantidad debida en el mes especificado"""
 
-        if periodo == None:
+        if periodo is None:
             inicio, fin = self.periodo()
             periodo = range(inicio, fin)
 
-        if not mes in periodo:
+        if mes not in periodo:
             return Zero
 
         if getattr(self, 'month{0}'.format(mes)):
@@ -596,7 +600,7 @@ class CuotaTable(SQLObject):
 
     def delayed(self):
 
-        if self.affiliate.joined == None:
+        if self.affiliate.joined is None:
             return Zero
 
         """Obtiene el primer mes en el que no se haya efectuado un pago en las
@@ -706,24 +710,28 @@ class AutoSeguro(SQLObject):
         total = Zero
         os = Obligation.selectBy(year=self.year, month=mes)
 
-        if (self.affiliate.cotizacion.jubilados and
-                not self.affiliate.jubilated is None):
+        if self.affiliate.cotizacion.jubilados \
+                and self.affiliate.jubilated is not None:
 
             if self.affiliate.jubilated.year < self.year:
-                total = sum(o.inprema_compliment for o in os)
+                total = os.sum('inprema_compliment')
 
             elif self.affiliate.jubilated.year == self.year:
-                total += sum(o.amount_compliment for o in os
-                             if mes < self.affiliate.jubilated.month)
+                if mes < self.affiliate.jubilated.month:
+                    amount_jubilated = os.sum('amount_compliment')
+                    if amount_jubilated is not None:
+                        total += amount_jubilated
 
-                total += sum(o.inprema_compliment for o in os
-                             if mes >= self.affiliate.jubilated.month)
+                if mes >= self.affiliate.jubilated.month:
+                    amount_jubilated = os.sum('inprema_compliment')
+                    if amount_jubilated is not None:
+                        total += amount_jubilated
 
             elif self.affiliate.jubilated.year > self.year:
-                total = sum(o.amount_compliment for o in os)
+                total = os.sum('amount_compliment')
 
         else:
-            total = sum(o.amount_compliment for o in os)
+            total = os.sum('amount_compliment')
 
         return total
 
@@ -731,11 +739,11 @@ class AutoSeguro(SQLObject):
 
         """Muestra la cantidad pagada en el mes especificado"""
 
-        if periodo == None:
+        if periodo is None:
             inicio, fin = self.periodo()
             periodo = range(inicio, fin)
 
-        if not mes in periodo:
+        if mes not in periodo:
             return Zero
 
         if not getattr(self, 'month{0}'.format(mes)):
@@ -747,11 +755,11 @@ class AutoSeguro(SQLObject):
 
         """Muestra la cantidad debida en el mes especificado"""
 
-        if periodo == None:
+        if periodo is None:
             inicio, fin = self.periodo()
             periodo = range(inicio, fin)
 
-        if not mes in periodo:
+        if mes not in periodo:
             return Zero
 
         if getattr(self, 'month{0}'.format(mes)):
@@ -1574,7 +1582,8 @@ class Solicitud(SQLObject):
         kw = {'aproval': user, 'affiliate': self.affiliate,
               'capital': self.monto, 'interest': 20, 'payment': cuota,
               'months': self.periodo, 'last': self.entrega,
-              'startDate': self.entrega, 'number': 0}
+              'startDate': self.entrega,
+              'number': 0}
         prestamo = Loan(**kw)
         prestamo.start()
 
