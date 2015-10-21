@@ -347,6 +347,22 @@ class Affiliate(SQLObject):
             cuota = CuotaTable(**kw)
         return cuota
 
+    def obtener_autoseguro(self, year):
+        cuota = None
+        try:
+            cuota = AutoSeguro.selectBy(affiliate=self, year=year).getOne()
+        except SQLObjectNotFound:
+
+            # Esto evita crear un año de aportaciones incorrecto
+            if year < self.joined.year:
+                return None
+
+            kw = dict()
+            kw['affiliate'] = self
+            kw['year'] = year
+            cuota = AutoSeguro(**kw)
+        return cuota
+
     def pagar_cuota(self, mes, anio):
 
         self.obtenerAportaciones(anio).pagar_mes(mes)
@@ -358,6 +374,10 @@ class Affiliate(SQLObject):
     def remove_cuota(self, year, month):
 
         self.obtenerAportaciones(year).remove_month(month)
+
+    def pay_compliment(self, year, month):
+
+        self.obtener_autoseguro(year).pagar_mes(month)
 
     def aportaciones(self):
 
@@ -609,6 +629,9 @@ class CuotaTable(SQLObject):
 
         inicio, fin = self.periodo(retrasada=True)
         for n in range(inicio, fin):
+            if self.year == 2015 and n == 5:
+                return Zero
+
             if not getattr(self, 'month{0}'.format(n)):
                 return n
 
@@ -853,6 +876,8 @@ class Loan(SQLObject):
     aproval = ForeignKey("User")
     cobrar = BoolCol(default=True)
     acumulado = CurrencyCol(default=0)
+    vence = DateCol(default=date.today)
+    vencidas = IntCol(default=0)
 
     def percent(self):
 
