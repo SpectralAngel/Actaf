@@ -41,21 +41,13 @@ class ActualizadorBancario(core.Actualizador):
     def update(self, ingreso, cuota=True):
 
         """Actualiza el estado de cuenta de acuerdo a un :class:`Ingreso`"""
-        conn = sqlhub.getConnection()
-        transaction = conn.transaction()
-        sqlhub.processConnection = transaction
-        try:
-            if cuota:
-                if ingreso.afiliado.cotizacion.jubilados or \
-                        ingreso.afiliado.cotizacion.alternate:
-                    self.complemento(ingreso, Decimal())
-                else:
-                    self.cuota(ingreso)
-            self.aditional(ingreso)
-            transaction.commit()
-        except Exception:
-            transaction.rollback()
-            raise
+        if cuota:
+            if ingreso.afiliado.cotizacion.jubilados or \
+                    ingreso.afiliado.cotizacion.alternate:
+                self.complemento(ingreso, Decimal())
+            else:
+                self.cuota(ingreso)
+        self.aditional(ingreso)
 
     def complemento(self, ingreso, monto):
 

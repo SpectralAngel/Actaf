@@ -20,6 +20,7 @@
 from decimal import Decimal
 from datetime import datetime
 import argparse
+from sqlobject import sqlhub
 
 import database
 import core
@@ -45,31 +46,19 @@ def start(parser, dia, inprema=True, cotizacion=2):
 
     # Cambiar por un par de acciones que muestren progreso
     parsed = parser.parse()
-    [updater.update(i, False) for i in parsed]
 
-    if inprema:
-        reporte = database.create_other_report(accounts, dia.year, dia.month,
-                                               cotizacion)
-    else:
-        reporte = database.create_report(accounts, dia.year, dia.month)
+    conn = sqlhub.getConnection()
+    transaction = conn.transaction()
+    sqlhub.processConnection = transaction
+    try:
+        [updater.update(i, False) for i in parsed]
+        transaction.commit()
+    except Exception:
+        transaction.rollback()
+        transaction.begin()
+        raise
 
-    print("Proceso de actualización Exitoso!")
-
-    return reporte
-
-
-def inprema(archivo, fecha):
-    """Incializa la actualización de las aportaciones mediante la planilla de
-    INPREMA"""
-
-    affiliates = database.get_affiliates_by_payment(2, True)
-    print(affiliates.count())
-
-    parser = core.AnalizadorCSV(archivo, affiliates)
-
-    reporte = start(parser, fecha)
-
-    return reporte
+    print(u"Proceso de actualización Exitoso!")
 
 
 if __name__ == "__main__":
@@ -80,4 +69,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
     fecha = datetime.strptime(args.fecha, "%Y%m%d").date()
 
-    inprema(args.archivo, fecha)
+    affiliates = database.get_affiliates_by_payment(2, True)
+
+    print(affiliates.count())
+
+    parser = core.AnalizadorCSV(args.archivo, affiliates)
+
+    start(parser, fecha)
