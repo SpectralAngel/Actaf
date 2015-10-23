@@ -31,11 +31,9 @@ def start(parser, dia, inprema=True, cotizacion=2):
 
     print("Iniciando proceso de Actualizacion, esto puede tardar mucho tiempo")
 
-    accounts = dict()
+    accounts = {}
     for account in database.get_accounts():
-        accounts[account] = dict()
-        accounts[account]['number'] = 0
-        accounts[account]['amount'] = Decimal(0)
+        accounts[account] = {'number': 0, 'amount': Decimal()}
 
     updater = core.Actualizador(database.get_obligation(dia.year, dia.month,
                                                         inprema), accounts, dia)
@@ -47,9 +45,8 @@ def start(parser, dia, inprema=True, cotizacion=2):
 
     # Cambiar por un par de acciones que muestren progreso
     parsed = parser.parse()
-    map((lambda i: updater.update(i)), parsed)
+    [updater.update(i, False) for i in parsed]
 
-    reporte = None
     if inprema:
         reporte = database.create_other_report(accounts, dia.year, dia.month,
                                                cotizacion)

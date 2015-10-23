@@ -41,17 +41,15 @@ if __name__ == "__main__":
     banco = database.Banco.get(int(args.banco))
     archivo = args.archivo
 
-    accounts = dict()
+    accounts = {}
     for account in database.get_accounts():
-        accounts[account] = dict()
-        accounts[account]['number'] = 0
-        accounts[account]['amount'] = Decimal(0)
+        accounts[account] = {'number': 0, 'amount': Decimal()}
 
     Parser = getattr(parsers, banco.parser)
     parser = Parser(fecha, archivo, banco)
     parsed = parser.output()
 
-    updater = parsers.Actualizador(
+    updater = parsers.ActualizadorBancario(
         database.get_obligation(fecha.year, fecha.month),
         accounts, fecha, banco, cobro,
         database.get_compliment(fecha.year, fecha.month, True),
@@ -64,4 +62,4 @@ if __name__ == "__main__":
     updater.registrar_cuenta(database.get_inprema_account(), 'complemento')
     print(u"Actualizando {0}".format(banco.nombre))
 
-    map((lambda i: updater.update(i, banco.cuota)), parsed)
+    [updater.update(i, banco.cuota) for i in parsed]

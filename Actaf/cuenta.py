@@ -71,7 +71,7 @@ if __name__ == '__main__':
         accounts[account]['number'] = 0
         accounts[account]['amount'] = Decimal(0)
 
-    updater = parsers.Actualizador(
+    updater = parsers.ActualizadorBancario(
         database.get_obligation(fecha.year, fecha.month),
         accounts, fecha, banco)
 

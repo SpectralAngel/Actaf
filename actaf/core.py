@@ -25,7 +25,6 @@ from sqlobject import sqlhub
 import database
 import retrasadas
 
-
 hundred = Decimal("100")
 complemento = Decimal("178.68")
 
@@ -196,7 +195,7 @@ class Actualizador(object):
         self.obligacion = obligacion
         self.cuentas = accounts
         self.day = day
-        self.registro = dict()
+        self.registro = {}
 
     def registrar_cuenta(self, account, name):
 
@@ -214,15 +213,14 @@ class Actualizador(object):
         4. Reintegros.
         """
 
-        map((lambda p: self.prestamo(p, ingreso)), ingreso.afiliado.loans)
+        [self.prestamo(p, ingreso) for p in ingreso.afiliado.loans]
         self.extra(ingreso)
-        map((lambda r: self.reintegros(r, ingreso)),
-            ingreso.afiliado.reintegros)
+        [self.reintegros(r, ingreso) for r in ingreso.afiliado.reintegros]
 
         if ingreso.cantidad > 0:
             self.excedente(ingreso)
 
-    def update(self, ingreso):
+    def update(self, ingreso, cuota=True):
 
         """Actualiza el estado de cuenta de acuerdo a un :class:`Ingreso`"""
         conn = sqlhub.getConnection()
@@ -232,7 +230,7 @@ class Actualizador(object):
             ingreso.afiliado.last = ingreso.cantidad
 
             if ingreso.cantidad == complemento:
-                self.complemento(ingreso)
+                self.complemento(ingreso, complemento)
             else:
                 self.cuota(ingreso)
             self.aditional(ingreso)
@@ -251,8 +249,9 @@ class Actualizador(object):
             # afiliado = database.get_affiliate(ingreso.afiliado.id)
             ingreso.afiliado.pay_cuota(self.day.year, self.day.month)
             ingreso.cantidad -= self.obligacion
-            database.create_deduction(ingreso.afiliado, self.obligacion,
-                                      self.registro['cuota'], self.day)
+            self.register_deduction(
+                ingreso.afiliado, self.obligacion, self.registro['cuota']
+            )
 
     def reintegros(self, reintegro, ingreso):
 
@@ -262,7 +261,10 @@ class Actualizador(object):
             ingreso.cantidad -= reintegro.monto
             self.cuentas[reintegro.cuenta]['amount'] += reintegro.monto
             self.cuentas[reintegro.cuenta]['number'] += 1
-            reintegro.deduccion(self.day)
+
+            self.register_deduction(
+                reintegro.monto, ingreso.afiliado, reintegro.cuenta
+            )
 
     def procesar_extra(self, extra, ingreso, disminuir=False):
 
@@ -276,13 +278,15 @@ class Actualizador(object):
 
         self.cuentas[extra.account]['amount'] += extra.amount
         self.cuentas[extra.account]['number'] += 1
+        self.extra_act(extra)
+
+    def extra_act(self, extra):
         extra.act(True, self.day)
 
     def extra(self, ingreso):
 
         """Acredita las deducciones extra en el estado de cuenta"""
-        map((lambda e: self.procesar_extra(e, ingreso, True)),
-            ingreso.afiliado.extras)
+        [self.procesar_extra(e, ingreso, True) for e in ingreso.afiliado.extras]
 
     def excedente(self, ingreso):
 
@@ -291,8 +295,9 @@ class Actualizador(object):
 
         self.cuentas[self.registro['excedente']]['amount'] += ingreso.cantidad
         self.cuentas[self.registro['excedente']]['number'] += 1
-        database.create_deduction(ingreso.afiliado, ingreso.cantidad,
-                                  self.registro['excedente'], self.day)
+        self.register_deduction(
+            ingreso.afiliado, ingreso.cantidad, self.registro['excedente']
+        )
 
     def prestamo(self, prestamo, ingreso):
 
@@ -311,8 +316,9 @@ class Actualizador(object):
             self.cuentas[self.registro['prestamo']]['amount'] += payment
             self.cuentas[self.registro['prestamo']]['number'] += 1
             ingreso.cantidad -= payment
-            database.create_deduction(ingreso.afiliado, payment,
-                                      self.registro['prestamo'], self.day)
+            self.register_deduction(
+                ingreso.afiliado, payment, self.registro['prestamo']
+            )
         # Cobrar lo que queda en las deducciones y marcalo como cuota incompleta
         # de prestamo
         else:
@@ -320,20 +326,22 @@ class Actualizador(object):
             self.cuentas[self.registro['incomplete']][
                 'amount'] += ingreso.cantidad
             self.cuentas[self.registro['incomplete']]['number'] += 1
-            database.create_deduction(ingreso.afiliado, ingreso.cantidad,
-                                      self.registro['incomplete'], self.day)
-            ingreso.cantidad = 0
+            self.register_deduction(ingreso.afiliado, ingreso.cantidad,
+                                    self.registro['incomplete'])
 
-    def complemento(self, ingreso):
+    def complemento(self, ingreso, monto):
 
-        if ingreso.cantidad >= complemento:
-            self.cuentas[self.registro['complemento']]['amount'] += complemento
+        if ingreso.cantidad >= monto:
+            self.cuentas[self.registro['complemento']]['amount'] += monto
             self.cuentas[self.registro['complemento']]['number'] += 1
             ingreso.afiliado.pay_compliment(self.day.year, self.day.month)
-            ingreso.cantidad -= complemento
-            database.create_bank_deduction(ingreso.afiliado, self.obligacion,
-                                           self.registro['complemento'], self.banco,
-                                           self.day)
+            ingreso.cantidad -= monto
+            self.register_deduction(monto, ingreso.afiliado,
+                                    self.registro['completo'])
+            ingreso.cantidad = 0
+
+    def register_deduction(self, cantidad, afiliado, cuenta):
+        database.create_deduction(afiliado, cantidad, cuenta, self.day)
 
 
 class Corrector(object):
