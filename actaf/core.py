@@ -133,8 +133,8 @@ class AnalizadorCSVSingle(AnalizadorCSV):
     def __init__(self, filename, byID=False):
 
         self.reader = csv.reader(open(filename))
-        self.affiliates = dict()
-        self.parsed = list()
+        self.affiliates = {}
+        self.parsed = []
         self.byID = byID
 
     def parse(self):
@@ -182,7 +182,7 @@ class AnalizadorINPREMA(object):
         try:
             self.parsed.append(Ingreso(self.affiliates[cobro], amount))
 
-        except:
+        except Exception:
             self.perdidos += 1
             # print("Error de parseo no se encontro la identidad {0}".format(
             # cobro))
@@ -340,7 +340,7 @@ class Actualizador(object):
             ingreso.afiliado.pay_compliment(self.day.year, self.day.month)
             ingreso.cantidad -= monto
             self.register_deduction(
-                ingreso.afiliado, monto, self.registro['completo']
+                ingreso.afiliado, monto, self.registro['complemento']
             )
             ingreso.cantidad = 0
 
@@ -361,7 +361,7 @@ class Corrector(object):
     def corregir_prestamo(self, prestamo):
 
         futuro = prestamo.future()
-        if futuro == list():
+        if not futuro:
             self.corregir.write(str(prestamo.id))
             self.corregir.write('\n')
             return
@@ -399,7 +399,7 @@ class Generador(object):
 
         self.year = year
         self.month = month
-        self.lines = list()
+        self.lines = []
         self.filename = "./%(year)s%(month)02dCOPEMH.txt" % {'year': self.year,
                                                              'month':
                                                                  self.month}
