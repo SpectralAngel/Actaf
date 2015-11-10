@@ -17,6 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Actaf.  If not, see <http://www.gnu.org/licenses/>.
 from decimal import Decimal
+from sqlobject import sqlhub
 
 import database
 import core
@@ -40,6 +41,7 @@ class ActualizadorBancario(core.Actualizador):
     def update(self, ingreso, cuota=True):
 
         """Actualiza el estado de cuenta de acuerdo a un :class:`Ingreso`"""
+        ingreso.afiliado.last = ingreso.cantidad
         if cuota:
             if ingreso.afiliado.cotizacion.jubilados or \
                     ingreso.afiliado.cotizacion.alternate:

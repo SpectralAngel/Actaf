@@ -226,23 +226,15 @@ class Actualizador(object):
     def update(self, ingreso, cuota=True):
 
         """Actualiza el estado de cuenta de acuerdo a un :class:`Ingreso`"""
-        conn = sqlhub.getConnection()
-        transaction = conn.transaction()
-        sqlhub.processConnection = transaction
-        try:
-            ingreso.afiliado.last = ingreso.cantidad
+        ingreso.afiliado.last = ingreso.cantidad
 
-            if cuota:
-                if ingreso.cantidad == complemento:
-                    self.complemento(ingreso, complemento)
-                else:
-                    self.cuota(ingreso)
+        if cuota:
+            if ingreso.cantidad == complemento:
+                self.complemento(ingreso, complemento)
+            else:
+                self.cuota(ingreso)
 
-            self.aditional(ingreso)
-            transaction.commit()
-        except Exception:
-            transaction.rollback()
-            raise
+        self.aditional(ingreso)
 
     def cuota(self, ingreso):
 
