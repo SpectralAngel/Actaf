@@ -383,7 +383,7 @@ class ReportLine(object):
     def __str__(self):
         total = self.amount * Decimal(100)
         if self.afiliado.cardID is None:
-            return str()
+            return ""
         return "{0}0011{1:018d}".format(self.afiliado.cardID.replace('-', ''),
                                         total)
 
@@ -425,12 +425,12 @@ class Generador(object):
         f = open(self.filename, 'w')
         start = "%(year)s%(month)02d" % {'year': int(self.year),
                                          'month': int(self.month)}
-        vacio = str()
+        vacio = ''
 
-        identidades = list()
+        identidades = []
         for line in self.lines:
 
-            if line.afiliado.cardID == None:
+            if line.afiliado.cardID is None:
                 print("Identidad Invalida: {0}".format(line.afiliado.id))
                 continue
 
@@ -455,9 +455,9 @@ class Generador(object):
     def escribir_csv(self):
 
         archivo = csv.writer(open('banco.csv', 'w'))
-        identidades = list()
+        identidades = []
         for line in self.lines:
-            if line.afiliado.cardID == None:
+            if line.afiliado.cardID is None:
                 print("Identidad Invalida: {0}".format(line.afiliado.id))
                 continue
 
@@ -479,10 +479,7 @@ class Generador(object):
         Escalafón"""
 
         afiliados = database.get_affiliates_by_payment("Escalafon", True)
-        kw = dict()
-        kw['account'] = database.get_help_account()
-        kw['amount'] = 50
-        kw['months'] = 1
+        kw = {'account': database.get_help_account(), 'amount': 50, 'months': 1}
 
         for afiliado in afiliados:
             kw['affiliate'] = afiliado
