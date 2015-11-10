@@ -1020,17 +1020,14 @@ class Loan(SQLObject):
         :param descripcion: Una descripción sobre la naturaleza del pago
         """
 
-        kw = dict()
-        kw['amount'] = amount = Decimal(amount).quantize(dot01)
-        kw['day'] = day
-        kw['receipt'] = receipt
-        kw['loan'] = self
-        kw['deposito'] = deposito
-        kw['description'] = descripcion
+        kw = {'amount': Decimal(amount).quantize(dot01), 'day': day,
+              'receipt': receipt, 'loan': self, 'deposito': deposito,
+              'description': descripcion}
+        amount = kw['amount']
 
         # La cantidad a pagar es igual que la deuda del préstamo, por
         # lo tanto se considera la ultima cuota y no se cargaran intereses
-        if (self.debt == amount):
+        if self.debt == amount:
 
             self.last = kw['day']
             kw['capital'] = kw['amount']
@@ -1039,7 +1036,8 @@ class Loan(SQLObject):
             Pay(**kw)
             # Remove the loan and convert it to PayedLoan
             if remove:
-                self.remove()
+                pass
+                #self.remove()
             else:
                 self.debt -= kw['amount']
             return True
@@ -1279,8 +1277,8 @@ class Pay(SQLObject):
         kw = {'payedLoan': payedLoan, 'day': self.day, 'capital': self.capital,
               'interest': self.interest, 'amount': self.amount,
               'receipt': self.receipt, 'description': self.description}
-        self.destroySelf()
         OldPay(**kw)
+        self.destroySelf()
 
     def revert(self):
         self.loan.debt = self.loan.capital - self.loan.capitalPagado() \
