@@ -44,11 +44,11 @@ class AnalizadorEscalafon(object):
     def __init__(self, filename, affiliates):
 
         self.file = open(filename)
-        self.affiliates = dict()
+        self.affiliates = {}
         for a in affiliates:
             self.affiliates[a.cardID] = a
 
-        self.parsed = list()
+        self.parsed = []
 
     def parse(self):
 
@@ -56,10 +56,13 @@ class AnalizadorEscalafon(object):
         Identidad y asignarle la cantidad deducida, entregandola en una lista
         de :class:`Ingreso`"""
 
-        lines = filter((lambda l: l[89:93] == "0011"), self.file)
-        matches = map(distribuir, lines)
+        matches = [distribuir(l) for l in self.file if l[89:93]]
+        [
+            self.parsed.append(Ingreso(self.affiliates[line[0]], line[1]))
+            for line in matches
+            if line[0] in self.affiliates
+        ]
 
-        map((lambda l: self.match(l)), matches)
         return self.parsed
 
     def match(self, line):
