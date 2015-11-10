@@ -22,7 +22,6 @@
 import argparse
 from datetime import datetime
 from decimal import Decimal
-from sqlobject import sqlhub
 
 import database
 import parsers
@@ -63,13 +62,4 @@ if __name__ == "__main__":
     updater.registrar_cuenta(database.get_inprema_account(), 'complemento')
     print(u"Actualizando {0}".format(banco.nombre))
 
-    conn = sqlhub.getConnection()
-    transaction = conn.transaction()
-    sqlhub.processConnection = transaction
-
-    try:
-        [updater.update(i, banco.cuota) for i in parsed]
-    except Exception:
-        transaction.rollback()
-        transaction.begin()
-        raise
+    [updater.update(i, banco.cuota) for i in parsed]
