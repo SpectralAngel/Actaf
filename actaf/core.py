@@ -340,7 +340,7 @@ class Actualizador(object):
             ingreso.afiliado.pay_compliment(self.day.year, self.day.month)
             ingreso.cantidad -= monto
             self.register_deduction(
-                ingreso.afiliado, monto, self.registro['complemento']
+                monto, ingreso.afiliado, self.registro['complemento']
             )
             ingreso.cantidad = 0
 
