@@ -284,7 +284,7 @@ class Affiliate(SQLObject):
             if self.cotizacion.jubilados:
                 obligation = obligations.sum('inprema')
 
-            if not self.cotizacion.alternate:
+            if self.cotizacion.alternate:
                 obligation = obligations.sum('amount_compliment')
 
         return obligation
