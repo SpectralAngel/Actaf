@@ -160,9 +160,9 @@ class Affiliate(SQLObject):
     """Historial de aportaciones"""
     loans = MultipleJoin("Loan", orderBy='startDate')
     """Préstamos activos"""
-    payedLoans = MultipleJoin("PayedLoan", orderBy='startDate')
+    payedLoans = SQLMultipleJoin("PayedLoan", orderBy='startDate')
     """Préstamos cancelados"""
-    extras = MultipleJoin("Extra")
+    extras = SQLMultipleJoin("Extra")
     """Deducciones extra a efectuar"""
     deduced = MultipleJoin("Deduced", orderBy=['-year', '-month'])
     """Deducciones efectuadas por planilla en un mes y año"""
@@ -221,7 +221,12 @@ class Affiliate(SQLObject):
         if loan_only:
             return self.get_prestamo()
 
-        total = sum(e.amount for e in self.extras)
+        extras = self.extras.sum('amount')
+
+        if extras is None:
+            extras = Zero
+
+        total = extras
         # loans = sum(l.get_payment() for l in self.loans)
         # reintegros = sum(r.monto for r in self.reintegros if not r.pagado)
 
