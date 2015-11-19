@@ -18,7 +18,6 @@
 # along with Actaf.  If not, see <http://www.gnu.org/licenses/>.
 from decimal import Decimal
 from sqlobject import sqlhub
-
 import database
 import core
 
@@ -110,6 +109,15 @@ class DaVivienda(Parser):
 class Ficensa(Parser):
     def __init__(self, fecha, archivo, banco):
         super(Ficensa, self).__init__(fecha, archivo, banco)
+
+    def output(self):
+        self.analizador = core.AnalizadorCSV(self.archivo, self.afiliados, True)
+        return self.analizador.parse()
+
+
+class Trabajadores(Parser):
+    def __init__(self, fecha, archivo, banco):
+        super(Trabajadores, self).__init__(fecha, archivo, banco)
 
     def output(self):
         self.analizador = core.AnalizadorCSV(self.archivo, self.afiliados, True)
