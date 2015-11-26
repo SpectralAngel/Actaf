@@ -21,7 +21,6 @@ import csv
 from decimal import Decimal, ROUND_DOWN
 import io
 from datetime import date
-
 import unicodecsv
 import model
 
