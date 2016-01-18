@@ -277,9 +277,13 @@ class Affiliate(SQLObject):
         obligation = Zero
         if self.banco_completo:
             if not self.cotizacion.jubilados:
-                obligation += obligation.sum('amount_compliment')
+                obligation += obligation.sum('amount_compliment') + obligation.sum(
+                    'alternate'
+                )
             if self.cotizacion.jubilados:
-                obligation += obligation.sum('inprema')
+                obligation += obligation.sum('inprema') + obligation.sum(
+                    'inprema_compliment'
+                )
             if not self.cotizacion.alternate:
                 obligation += obligations.sum('amount')
         else:
@@ -287,7 +291,7 @@ class Affiliate(SQLObject):
                 obligation += obligations.sum('amount')
 
             if self.cotizacion.jubilados:
-                obligation = obligations.sum('inprema')
+                obligation = obligations.sum('inprema_compliment')
 
             if self.cotizacion.alternate:
                 obligation = obligations.sum('amount_compliment')
@@ -1042,7 +1046,7 @@ class Loan(SQLObject):
             # Remove the loan and convert it to PayedLoan
             if remove:
                 pass
-                #self.remove()
+                # self.remove()
             else:
                 self.debt -= kw['amount']
             return True
@@ -1110,7 +1114,7 @@ class Loan(SQLObject):
             pagos = filter((lambda p: not p[0] in fechas), pagos)
             for pago in pagos:
                 comment = "Sobrante de {0} del pago efectuado el {1}".format(
-                    pago[1], pago[0].strftime('%d de %B de %Y'))
+                        pago[1], pago[0].strftime('%d de %B de %Y'))
 
                 Observacion(affiliate=self.affiliate, texto=comment,
                             fecha=date.today())
@@ -1665,8 +1669,8 @@ class Reintegro(SQLObject):
         kw = {'amount': self.monto, 'affiliate': self.affiliate,
               'account': self.cuenta, 'month': dia.month, 'year': dia.year,
               'detail': "Reintegro {0} por {0}".format(
-                  self.emision.strftime('%d/%m/%Y'),
-                  self.motivo)}
+                      self.emision.strftime('%d/%m/%Y'),
+                      self.motivo)}
 
         Deduced(**kw)
 
@@ -1678,8 +1682,8 @@ class Reintegro(SQLObject):
               'banco': self.affiliate.get_banco(), 'account': self.cuenta,
               'month': dia.month, 'year': dia.year, 'day': cobro,
               'detail': "Reintegro {0} por {0}".format(
-                  self.emision.strftime('%d/%m/%Y'),
-                  self.motivo)}
+                      self.emision.strftime('%d/%m/%Y'),
+                      self.motivo)}
 
         DeduccionBancaria(**kw)
 

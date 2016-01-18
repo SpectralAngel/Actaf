@@ -18,9 +18,12 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Actaf.  If not, see <http://www.gnu.org/licenses/>.
+from datetime import date
 
 import model
 import database
+
+years = {}
 
 
 class Retrasada(object):
@@ -39,33 +42,12 @@ class Retrasada(object):
         if self.anio is None or self.mes is None:
             return
 
-        obligaciones = None
-        cuenta = None
-        try:
-            cuenta = model.CuentaRetrasada.selectBy(mes=self.mes,
-                                                    anio=self.anio).getOne()
-            obligaciones = model.Obligation.selectBy(month=self.mes,
-                                                     year=self.anio)
-        except:
-            print self.anio, self.mes
-
-        # TA
-        if obligaciones is None:
-            print self.anio, self.mes
-            return
-
-        obligacion = sum(o.amount for o in obligaciones)
-
-        kw = dict()
+        kw = {'account': years[self.anio][self.mes]['cuenta'],
+              'amount': years[self.anio][self.mes]['obligacion'],
+              'retrasada': True, 'months': 1, 'affiliate': self.afiliado,
+              'mes': self.mes, 'anio': self.anio}
 
         # Version para TurboAffiliate
-        kw['account'] = cuenta.account
-        kw['amount'] = obligacion
-        kw['retrasada'] = True
-        kw['months'] = 1
-        kw['affiliate'] = self.afiliado
-        kw['mes'] = self.mes
-        kw['anio'] = self.anio
 
         model.Extra(**kw)
 
@@ -96,6 +78,26 @@ if __name__ == '__main__':
         psyco.full()
     except ImportError:
         pass
+
+    first_year = model.CuotaTable.select().min('year')
+    current_year = date.today().year
+    current_month = date.today().month
+
+    obligaciones = None
+    cuenta = None
+
+    for n in range(first_year, current_year):
+        years[n] = {}
+        for m in range(1, 13):
+            if n == current_year and m >= current_month:
+                break
+            years[n][m] = {}
+
+            try:
+                years[n][m]['cuenta'] = model.CuentaRetrasada.selectBy(mes=m, anio=n).getOne().account
+                years[n][m]['obligacion'] = model.Obligation.selectBy(month=m, year=n).sum('amount')
+            except:
+                print n, m
 
     creacion = Retrasada.crear_extra
     print("Obteniendo Retrasadas")

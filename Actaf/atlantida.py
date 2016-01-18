@@ -11,7 +11,5 @@ if __name__ == '__main__':
     for line in faltantes:
         afiliados.append(database.get_affiliate(int(line[0])))
 
-    print afiliados
-
     generator = Atlantida(database.Banco.get(1001020), afiliados, date.today())
     generator.output()
