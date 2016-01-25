@@ -49,50 +49,50 @@ class Generator(object):
 
     def output(self):
         print(self.banco.nombre)
-        line = ([unicode(a.id),
+        line = ([str(a.id),
                  "{0} {1}".format(a.firstName, a.lastName),
                  a.cardID,
-                 unicode(a.get_monthly(self.fecha, True)),
-                 unicode(a.cuenta)] for a in self.afiliados)
+                 str(a.get_monthly(self.fecha, True)),
+                 str(a.cuenta)] for a in self.afiliados)
         line = filter((lambda l: l[0] is not None and l[1] is not None and
                                  l[2] is not None and l[3] is not None), line)
-        planilla = unicodecsv.UnicodeWriter(
+        planilla = unicodecsv.writer(
                 io.open(os.path.join(directory, '{0}.csv'.format(
                         self.banco.nombre + str(self.fecha))),
                         'wb'))
-        map((lambda l: planilla.writerow(l)), line)
+        [planilla.writerow(l) for l in line]
 
     def davivienda(self):
-        line = ([unicode(a.id),
+        line = ([str(a.id),
                  a.cardID.replace('-', ''),
                  "{0} {1}".format(a.firstName, a.lastName),
-                 unicode(a.get_monthly(self.fecha, True)),
-                 unicode(0),
-                 unicode(0),
-                 unicode(a.get_monthly(self.fecha, True)),
+                 str(a.get_monthly(self.fecha, True)),
+                 str(0),
+                 str(0),
+                 str(a.get_monthly(self.fecha, True)),
                  ]
                 for a in self.afiliados)
         line = filter((lambda l: l[0] is not None and l[1] is not None and
                                  l[2] is not None and l[3] is not None), line)
-        planilla = unicodecsv.UnicodeWriter(
+        planilla = unicodecsv.writer(
                 io.open(os.path.join(directory, 'general.csv'), 'wb'))
-        map((lambda l: planilla.writerow(l)), line)
+        [planilla.writerow(l) for l in line]
 
     def cobros(self):
-        line = ([unicode(a.id),
+        line = ([str(a.id),
                  a.cardID.replace('-', ''),
                  "{0} {1}".format(a.firstName, a.lastName),
-                 unicode(a.get_monthly(self.fecha)),
-                 unicode(a.get_phone()),
-                 unicode(a.get_email()),
-                 unicode(a.get_monthly()),
+                 str(a.get_monthly(self.fecha)),
+                 str(a.get_phone()),
+                 str(a.get_email()),
+                 str(a.get_monthly()),
                  ]
                 for a in self.afiliados)
         line = filter((lambda l: l[0] is not None and l[1] is not None and
                                  l[2] is not None and l[3] is not None), line)
-        planilla = unicodecsv.UnicodeWriter(
+        planilla = unicodecsv.writer(
                 io.open(os.path.join(directory, 'general-cobros.csv'), 'wb'))
-        map((lambda l: planilla.writerow(l)), line)
+        [planilla.writerow(l) for l in line]
 
 
 class Occidente(Generator):
@@ -205,8 +205,6 @@ class INPREMA(Generator):
         self.append = append
 
     def output(self):
-
-        charges = list()
         identidad = 0
         line = []
         loan = []
@@ -215,40 +213,49 @@ class INPREMA(Generator):
             if afiliado.cardID is None or afiliado.cardID == '0':
                 identidad += 1
                 continue
-            salida = self.format.format(
-                    self.fecha.year,
-                    self.fecha.month,
-                    afiliado.cardID.replace('-', ''),
-                    afiliado.get_monthly(self.fecha, True))
+
             line.append((
-                str(self.fecha.year),
-                str(self.fecha.month),
+                self.fecha.year,
+                self.fecha.month,
                 afiliado.cardID.replace('-', ''),
-                '11',
-                str(afiliado.get_monthly(self.fecha))))
+                11,
+                afiliado.get_monthly(self.fecha)))
             loan.append((
-                str(self.fecha.year),
-                str(self.fecha.month),
+                self.fecha.year,
+                self.fecha.month,
                 afiliado.cardID.replace('-', ''),
-                '11',
-                str(afiliado.get_prestamo())))
-            charges.append(salida)
+                11,
+                afiliado.get_prestamo()))
 
         mode = 'wb'
         if self.append:
             mode = 'a'
-        planilla = unicodecsv.UnicodeWriter(
+        planilla = unicodecsv.writer(
                 io.open(os.path.join(directory,
                                      'INPREMA{0}.csv'.format(str(self.fecha))),
                         mode),
-                quoting=csv.QUOTE_ALL)
-        prestamos = unicodecsv.UnicodeWriter(
+                quoting=csv.QUOTE_ALL, encoding='utf-8')
+        prestamos = unicodecsv.writer(
                 io.open(os.path.join(directory,
                                      'INPREMA{0}-prestamo.csv'.format(
                                              str(self.fecha))), mode),
                 quoting=csv.QUOTE_ALL)
-        map((lambda l: planilla.writerow(l)), line)
-        map((lambda l: prestamos.writerow(l)), loan)
+
+        print "Generando Colegiación"
+
+        for l in line:
+            try:
+                planilla.writerow(l)
+            except TypeError as error:
+                print error, l
+
+        print "Generando Prestamos"
+
+        for l in loan:
+            try:
+                prestamos.writerow(l)
+            except TypeError as error:
+                print error, l
 
 
 class Banhcafe(Generator):
@@ -258,9 +265,10 @@ class Banhcafe(Generator):
     def output(self):
         model.CobroBancarioBanhcafe.clearTable()
         for afiliado in self.afiliados:
-            model.CobroBancarioBanhcafe(cantidad=afiliado.get_monthly(),
-                                        identidad=afiliado.cardID.replace('-',
-                                                                          ''))
+            model.CobroBancarioBanhcafe(
+                    cantidad=afiliado.get_monthly(),
+                    identidad=afiliado.cardID.replace('-', '')
+            )
 
         super(Banhcafe, self).output()
 
@@ -288,11 +296,11 @@ class Pais(Generator):
         line = filter((lambda l: l[0] is not None and l[1] is not None and
                                  l[2] is not None and l[3] is not None),
                       line)
-        planilla = unicodecsv.UnicodeWriter(
+        planilla = unicodecsv.writer(
                 io.open(os.path.join(directory, '{0}.csv'.format(
                         self.banco.nombre + str(self.fecha))),
                         'wb'))
-        map((lambda l: planilla.writerow(l)), line)
+        [planilla.writerow(l) for l in line]
 
 
 class Ficensa(Generator):
@@ -372,27 +380,27 @@ class UPN(Generator):
                  str(a.escalafon),
                  str(a.get_monthly(self.fecha, True))] for a in self.afiliados)
 
-        planilla = unicodecsv.UnicodeWriter(
+        planilla = unicodecsv.writer(
                 io.open(os.path.join(directory,
                                      'UPN{0}.csv'.format(str(self.fecha))),
                         'wb'))
-        map((lambda l: planilla.writerow(l)), line)
+        [planilla.writerow(l) for l in line]
 
 
 class Trabajadores(Generator):
     def output(self):
         print(self.banco.nombre)
-        line = ([unicode(a.id),
+        line = ([str(a.id),
                  "{0} {1}".format(a.firstName, a.lastName),
                  a.cardID,
-                 unicode(a.get_monthly(self.fecha, True, True)),
+                 str(a.get_monthly(self.fecha, True, True)),
                  '50',
-                 unicode(a.cuenta)] for a in self.afiliados)
+                 str(a.cuenta)] for a in self.afiliados)
 
         line = [l for l in line if l[0] is not None and l[1] is not None and
                 l[2] is not None and l[3] is not None]
 
-        planilla = unicodecsv.UnicodeWriter(
+        planilla = unicodecsv.writer(
                 io.open(os.path.join(directory, '{0}.csv'.format(
                         self.banco.nombre + str(self.fecha))),
                         'wb'))
