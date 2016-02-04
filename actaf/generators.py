@@ -193,7 +193,7 @@ class Atlantida(Generator):
         out.writelines(clients)
         out.close()
         out = io.open(os.path.join(directory, self.banco.nombre + str(
-            self.fecha) + "-debito.txt"), 'w')
+                self.fecha) + "-debito.txt"), 'w')
         out.writelines(charges)
 
 
@@ -293,9 +293,8 @@ class Pais(Generator):
                  str(a.last)] for a in self.afiliados
                 if a.autorizacion)
 
-        line = filter((lambda l: l[0] is not None and l[1] is not None and
-                                 l[2] is not None and l[3] is not None),
-                      line)
+        line = [l for l in line if l[0] is not None and l[1] is not None and
+                l[2] is not None and l[3] is not None]
         planilla = unicodecsv.writer(
                 io.open(os.path.join(directory, '{0}.csv'.format(
                         self.banco.nombre + str(self.fecha))),

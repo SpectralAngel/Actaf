@@ -240,7 +240,8 @@ class Affiliate(SQLObject):
         else:
             total += self.get_cuota(day)
 
-        if self.cotizacion.bank_main or self.banco_completo:
+        if self.cotizacion.bank_main or self.banco_completo or \
+                self.cotizacion.jubilados:
             total += self.get_prestamo()
 
         return total
@@ -277,12 +278,13 @@ class Affiliate(SQLObject):
         obligation = Zero
         if self.banco_completo:
             if not self.cotizacion.jubilados:
-                obligation += obligation.sum('amount_compliment') + obligation.sum(
-                    'alternate'
+                obligation += obligation.sum(
+                        'amount_compliment') + obligation.sum(
+                        'alternate'
                 )
             if self.cotizacion.jubilados:
                 obligation += obligation.sum('inprema') + obligation.sum(
-                    'inprema_compliment'
+                        'inprema_compliment'
                 )
             if not self.cotizacion.alternate:
                 obligation += obligations.sum('amount')
@@ -996,8 +998,8 @@ class Loan(SQLObject):
 
         """Obtiene el cobro a efectuar del prestamo"""
 
-        # if self.debt < self.payment and self.number != self.months - 1:
-        #    return self.debt
+        if self.debt < self.payment and self.number != self.months - 1:
+            return self.debt
 
         return self.payment
 
