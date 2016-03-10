@@ -16,7 +16,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Actaf.  If not, see <http://www.gnu.org/licenses/>.
-
 import copy
 from dateutil.relativedelta import relativedelta
 from sqlobject import (SQLObject, UnicodeCol, StringCol, DateCol, CurrencyCol,
@@ -241,7 +240,7 @@ class Affiliate(SQLObject):
             total += self.get_cuota(day)
 
         if self.cotizacion.bank_main or self.banco_completo or \
-                self.cotizacion.jubilados:
+                not self.cotizacion.jubilados:
             total += self.get_prestamo()
 
         return total
@@ -1074,7 +1073,7 @@ class Loan(SQLObject):
         # Increase the number of payments by one
         self.number += 1
 
-        if self.debt <= 0 and remove:
+        if self.debt <= Zero and remove:
             self.remove()
             return True
 

@@ -19,6 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Actaf.  If not, see <http://www.gnu.org/licenses/>.
 from datetime import date
+from multiprocessing import Pool
 
 import model
 import database
@@ -86,7 +87,7 @@ if __name__ == '__main__':
     obligaciones = None
     cuenta = None
 
-    for n in range(first_year, current_year):
+    for n in range(first_year, current_year + 1):
         years[n] = {}
         for m in range(1, 13):
             if n == current_year and m >= current_month:
@@ -103,8 +104,4 @@ if __name__ == '__main__':
     print("Obteniendo Retrasadas")
     retrasadas = procesar_retrasadas(1)
     print("Creando extras")
-    map(creacion, retrasadas)
-    retrasadas = procesar_retrasadas(10)
-    map(creacion, retrasadas)
-    retrasadas = procesar_retrasadas(3)
     map(creacion, retrasadas)

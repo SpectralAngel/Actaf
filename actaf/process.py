@@ -30,7 +30,7 @@ def start(parser, dia, inprema=True, cotizacion=2):
     """Inicia el proceso de actualización de las aportaciones utilizando la
     planilla recibida"""
 
-    print("Iniciando proceso de Actualizacion, esto puede tardar mucho tiempo")
+    print(u"Iniciando proceso de Actualizacion, esto puede tardar mucho tiempo")
 
     accounts = {}
     for account in database.get_accounts():
@@ -51,7 +51,7 @@ def start(parser, dia, inprema=True, cotizacion=2):
     transaction = conn.transaction()
     sqlhub.processConnection = transaction
     try:
-        [updater.update(i, False) for i in parsed]
+        [updater.update(i, True) for i in parsed]
         transaction.commit()
     except Exception:
         transaction.rollback()

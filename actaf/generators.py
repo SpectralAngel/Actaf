@@ -25,8 +25,9 @@ import os
 from datetime import date
 from decimal import Decimal, ROUND_DOWN
 
-import model
 import unicodecsv
+
+import model
 
 directory = 'generated'
 
@@ -40,10 +41,11 @@ if not os.path.exists(directory):
 
 class Generator(object):
     def __init__(self, banco, afiliados, fecha):
-        self.afiliados = filter((lambda a: a.cardID is not None and
-                                           a.firstName is not None
-                                           and a.lastName is not None),
-                                afiliados)
+        self.afiliados = [
+            a for a in afiliados
+            if a.cardID is not None and a.firstName is not None
+            and a.lastName is not None
+            ]
         self.fecha = fecha
         self.banco = banco
 
@@ -83,9 +85,9 @@ class Generator(object):
                  a.cardID.replace('-', ''),
                  "{0} {1}".format(a.firstName, a.lastName),
                  str(a.get_monthly(self.fecha)),
-                 str(a.get_phone()),
-                 str(a.get_email()),
-                 str(a.get_monthly()),
+                 a.get_phone(),
+                 a.get_email(),
+                 a.get_monthly(),
                  ]
                 for a in self.afiliados)
         line = filter((lambda l: l[0] is not None and l[1] is not None and
@@ -214,22 +216,28 @@ class INPREMA(Generator):
                 identidad += 1
                 continue
 
-            line.append((
-                self.fecha.year,
-                self.fecha.month,
-                afiliado.cardID.replace('-', ''),
-                11,
-                afiliado.get_monthly(self.fecha)))
-            loan.append((
-                self.fecha.year,
-                self.fecha.month,
-                afiliado.cardID.replace('-', ''),
-                11,
-                afiliado.get_prestamo()))
+            line.append(
+                    (
+                        self.fecha.year,
+                        self.fecha.month,
+                        afiliado.cardID.replace('-', ''),
+                        11,
+                        afiliado.get_monthly(self.fecha)
+                    )
+            )
+            loan.append(
+                    (
+                        self.fecha.year,
+                        self.fecha.month,
+                        afiliado.cardID.replace('-', ''),
+                        11,
+                        afiliado.get_prestamo()
+                    )
+            )
 
         mode = 'wb'
         if self.append:
-            mode = 'a'
+            mode = 'ab+'
         planilla = unicodecsv.writer(
                 io.open(os.path.join(directory,
                                      'INPREMA{0}.csv'.format(str(self.fecha))),
@@ -241,21 +249,12 @@ class INPREMA(Generator):
                                              str(self.fecha))), mode),
                 quoting=csv.QUOTE_ALL)
 
-        print "Generando Colegiación"
+        print("Generando Colegiación")
 
-        for l in line:
-            try:
-                planilla.writerow(l)
-            except TypeError as error:
-                print error, l
+        [planilla.writerow(l) for l in line]
 
-        print "Generando Prestamos"
-
-        for l in loan:
-            try:
-                prestamos.writerow(l)
-            except TypeError as error:
-                print error, l
+        print("Generando Prestamos")
+        [prestamos.writerow(l) for l in loan]
 
 
 class Banhcafe(Generator):
